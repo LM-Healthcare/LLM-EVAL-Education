@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and checkpoints
+*.log
+checkpoint_*.json
+raw_responses_*.jsonl
+
+# Results (generated at runtime)
+results_*.json
+consistency_*.xlsx
+metrics_*.xlsx
+
+# Temporary Excel lock files
+~$*.xlsx
+
+# Models (too large for git)
+models/
+*.gguf
+*.bin
+*.safetensors
