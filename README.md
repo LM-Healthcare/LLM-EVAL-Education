@@ -20,6 +20,16 @@ This repository contains the code and dataset used in our study, which benchmark
 │   ├── Open/                     # Open-weight models (HuggingFace)
 │   └── Quantized/                # GGUF quantized models (llama-cpp)
 │
+├── Results/                      # Full evaluation outputs
+│   ├── Closed Models/
+│   ├── Open Models/
+│   └── Quantized models/
+│       ├── Consistency/          # Per-question answer tracking (.xlsx)
+│       ├── Log/                  # Execution logs (.log)
+│       ├── Metrics/              # Per-run accuracy & scores (.xlsx)
+│       ├── Raw_Responses/        # Raw model outputs (.jsonl)
+│       └── Results/              # Aggregated results (.json)
+│
 └── README.md
 ```
 
@@ -31,6 +41,25 @@ Each row in the Excel files has the following columns:
 - `Domanda` — question text
 - `Risposta A` — answer option A (correct answer)
 - `Risposta B` through `Risposta E` — distractor options
+
+## Results
+
+The `Results/` folder contains the complete evaluation outputs for all models, organized into three subcategories mirroring the code structure: `Closed Models/`, `Open Models/`, and `Quantized models/`. Each subcategory contains five subfolders:
+
+| Subfolder | Format | Description |
+|---|---|---|
+| `Consistency/` | `.xlsx` | Per-question answer tracking across all 250 runs (5 years × 50 repetitions). Each row is a question; each column is a run. Values are `1` (correct), the original wrong letter, or `ND` (extraction failure). |
+| `Log/` | `.log` | Full execution logs with timestamps, per-question details, and error traces. |
+| `Metrics/` | `.xlsx` | Per-run summary metrics including accuracy (%), SSM score (with −0.25 penalty for wrong answers), total time, and average response time per question. |
+| `Raw_Responses/` | `.jsonl` | One JSON object per question per run, containing the raw model output, the prompt sent, shuffled option mapping, extracted answer, timing, and correctness. |
+| `Results/` | `.json` | Aggregated results per model with overall statistics across all years and runs. |
+
+### File Naming Convention
+
+Files follow the pattern `{type}_{model_name}.{ext}`, e.g.:
+- `consistency_claude.xlsx`, `metrics_grok.xlsx` (closed models)
+- `results_Qwen3_8B.json`, `raw_responses_Meditron3_8B_FP16.jsonl` (open models)
+- `metrics_MedGemma_4B_Q4_K_M.xlsx`, `results_Meditron3_8B_Q6_K.json` (quantized models)
 
 ## Models Evaluated
 

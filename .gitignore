@@ -24,15 +24,19 @@ env/
 Thumbs.db
 desktop.ini
 
-# Logs and checkpoints
+# Logs and checkpoints (in working directories, not in Results/)
 *.log
 checkpoint_*.json
 raw_responses_*.jsonl
 
-# Results (generated at runtime)
+# Results (generated at runtime in working directories)
 results_*.json
 consistency_*.xlsx
 metrics_*.xlsx
+
+# Allow all files inside the Results/ folder
+!Results/
+!Results/**
 
 # Temporary Excel lock files
 ~$*.xlsx
