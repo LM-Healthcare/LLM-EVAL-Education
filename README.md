@@ -91,37 +91,6 @@ Files follow the pattern `{type}_{model_name}.{ext}`, e.g.:
 | MedGemma 1.5 4B IT | Q8_0 |
 | Meditron3-8B | GGUF |
 
-## How to Run
-
-Each script is self-contained. See the [`Official_testing_code/README.md`](Official_testing_code/README.md) for detailed instructions on parameters, parsing logic, and usage.
-
-### Quick Start (Closed-source example)
-
-```bash
-pip install openai pandas openpyxl
-python Official_testing_code/Closed/test_gpt_medical_exam_v2.py
-```
-
-### Quick Start (Open-weight example)
-
-```bash
-pip install transformers torch accelerate pandas openpyxl
-python Official_testing_code/Open/test_qwen3_4b_medical_exam.py
-```
-
-## Citation
-
-If you use this code or dataset, please cite our paper:
-
-```
-@article{TODO,
-  title={TODO},
-  author={TODO},
-  journal={TODO},
-  year={2025}
-}
-```
-
 ## License
 
 This repository is released for academic and research purposes.
