@@ -103,7 +103,7 @@ Retry uses `temperature=0.01`, `max_new_tokens=20`, `do_sample=True`.
 
 | Parameter | Value | Notes |
 |---|---|---|
-| `temperature` | `0` | Fully deterministic primary generation |
+| `temperature` | `0.1` | Fully deterministic primary generation |
 | `max_tokens` | `2048` | Full reasoning chain supported |
 
 Retry: `temperature=0.01`, `max_tokens=20`, `top_p=0.95`.
