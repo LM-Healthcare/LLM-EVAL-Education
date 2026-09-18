@@ -38,7 +38,7 @@ class MistralMedicalExamTester:
             api_key: API key di Mistral
         """
         self.api_key = api_key
-        self.model_name = "mistral-large-2411"
+        self.model_name = "mistral-large-2512"
         self.api_url = "https://api.mistral.ai/v1/chat/completions"
         self.headers = {
             "Content-Type": "application/json",

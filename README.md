@@ -70,7 +70,7 @@ Files follow the pattern `{type}_{model_name}.{ext}`, e.g.:
 | Claude 4.5 Sonnet | Anthropic |
 | DeepSeek-Chat | DeepSeek |
 | Grok-4.1 Fast Reasoning | xAI |
-| Mistral Large (2411) | Mistral AI |
+| Mistral Large 3 | Mistral AI |
 | Qwen3-Max | Alibaba (DashScope) |
 
 ### Open-Weight (HuggingFace Transformers)

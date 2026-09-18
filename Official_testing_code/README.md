@@ -45,7 +45,7 @@ All closed-source models use **identical** generation parameters:
 | `test_claude_medical_exam_v2.py` | `claude-sonnet-4-5-20250929` | Anthropic (`anthropic` SDK) |
 | `test_deepseek_medical_exam_v2.py` | `deepseek-chat` | DeepSeek REST API |
 | `test_grok_medical_exam_v2.py` | `grok-4-1-fast-reasoning` | xAI REST API |
-| `test_mistral_medical_exam_v2.py` | `mistral-large-2411` | Mistral AI REST API |
+| `test_mistral_medical_exam_v2.py` | `mistral-large-2512` | Mistral AI REST API |
 | `test_qwen_medical_exam_v2.py` | `qwen3-max` | DashScope (Alibaba) REST API |
 
 **GPT** uses `max_completion_tokens=50` instead of `max_tokens=50` (OpenAI SDK naming convention).
