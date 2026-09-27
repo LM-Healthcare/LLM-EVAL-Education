@@ -4,7 +4,7 @@
 2026-02-14 12:17:47,507 - __main__ - INFO - Anni da testare: [2020, 2021, 2022, 2023, 2024]
 2026-02-14 12:17:47,507 - __main__ - INFO - Ripetizioni per anno: 50
 2026-02-14 12:17:47,507 - __main__ - INFO - Totale run: 250
-2026-02-14 12:17:47,509 - __main__ - INFO - Inizializzato tester con modello mistral-large-2411
+2026-02-14 12:17:47,509 - __main__ - INFO - Inizializzato tester con modello mistral-large-2512
 2026-02-14 12:17:47,509 - __main__ - INFO - 
 ================================================================================
 2026-02-14 12:17:47,509 - __main__ - INFO - INIZIO TEST PER ANNO 2020
@@ -235,7 +235,7 @@
 2026-02-14 12:33:29,772 - __main__ - INFO - Anni da testare: [2020, 2021, 2022, 2023, 2024]
 2026-02-14 12:33:29,772 - __main__ - INFO - Ripetizioni per anno: 50
 2026-02-14 12:33:29,772 - __main__ - INFO - Totale run: 250
-2026-02-14 12:33:29,772 - __main__ - INFO - Inizializzato tester con modello mistral-large-2411
+2026-02-14 12:33:29,772 - __main__ - INFO - Inizializzato tester con modello mistral-large-2512
 2026-02-14 12:33:29,772 - __main__ - INFO - Checkpoint caricato: Anno 2020, Run 1, Domanda 60
 2026-02-14 12:33:29,772 - __main__ - INFO - 
 ================================================================================
