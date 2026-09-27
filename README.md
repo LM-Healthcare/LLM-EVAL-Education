@@ -1,40 +1,5 @@
 # LLM-EVAL-Education
 
-Evaluation of Large Language Models on the Italian Medical Specialization Entrance Exam (SSM - Specializzazione in Medicina).
-
-This repository contains the code and dataset used in our study, which benchmarks both closed-source (API-based) and open-weight LLMs on real multiple-choice questions from the Italian national medical residency entrance exams (2020–2024).
-
-## Repository Structure
-
-```
-.
-├── Dataset/                      # Exam questions (2020-2024)
-│   ├── 2020_SSM_[checked].xlsx
-│   ├── 2021_SSM_[checked].xlsx
-│   ├── 2022_SSM_[checked].xlsx
-│   ├── 2023_SSM_[checked].xlsx
-│   └── 2024_SSM_[checked].xlsx
-│
-├── Official_testing_code/        # Evaluation scripts for all models
-│   ├── Closed/                   # Closed-source / API-based models
-│   ├── Open/                     # Open-weight models (HuggingFace)
-│   └── Quantized/                # GGUF quantized models (llama-cpp)
-│
-├── Results/                      # Full evaluation outputs
-│   ├── Closed Models/
-│   ├── Open Models/
-│   └── Quantized models/
-│       ├── Consistency/          # Per-question answer tracking (.xlsx)
-│       ├── Log/                  # Execution logs (.log)
-│       ├── Metrics/              # Per-run accuracy & scores (.xlsx)
-│       ├── Raw_Responses/        # Raw model outputs (.jsonl)
-│       └── Results/              # Aggregated results (.json)
-│
-└── README.md
-```
-
-# LLM-EVAL-Education
-
 Evaluation of Large Language Models on the Italian Medical Specialization Entrance Exam (SSM – *Esame per l'Accesso alle Scuole di Specializzazione Medica*).
 
 This repository contains the code, dataset, and complete evaluation outputs used in our study, which benchmarks 18 LLMs (6 proprietary API-based models, 6 open-weight models, and 6 quantized variants of medically fine-tuned models) on real multiple-choice questions from the Italian national medical residency entrance exams (2020–2024).
