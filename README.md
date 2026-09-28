@@ -8,15 +8,23 @@ This repository contains the code, dataset, and complete evaluation outputs used
 
 ```
 .
-|── Analysis
-|   
-|── Candidate_analysis/          # Anonymised human-candidate scores and human-referenced analysis
-|   ├── data/
-│   ├── output/
-│   ├── script/
+├── Analysis/                     # Analyses added during peer review (see sections below)
+│   ├── audit_extraction.py       # Answer extraction audit (630,000 responses)
+│   ├── audit_output/             # Outputs of the audit
+│   ├── manual_resolution_review_R2.xlsx   # Second, independent review of manual resolutions
+│   ├── stratified_itemtype_analysis.py    # Exploratory item-type analysis (ERQ)
+│   ├── itemtype_results_by_model.csv
+│   ├── itemtype_results_by_group.csv
+│   ├── repeated_runs_statistics.R         # Between-model tests, effect sizes, item-level CIs
+│   └── statistics_output/                 # Outputs of repeated_runs_statistics.R
+│
+├── Candidate_analysis/           # Human reference data and human-referenced analysis (see its own README)
+│   ├── data/                     # Anonymised candidate scores; one row per model × year × run
+│   ├── outputs/                  # Tables 2, 3 and 5, Supplementary Tables S8–S9, Figures 1–4
+│   ├── scripts/                  # Extraction of the rankings and analysis (R)
 │   └── README.md
-|
-├── Dataset/                      # Exam questions (2020-2024)
+│
+├── Dataset/                      # Exam questions (2020–2024)
 │   ├── 2020_SSM_[checked].xlsx
 │   ├── 2021_SSM_[checked].xlsx
 │   ├── 2022_SSM_[checked].xlsx
@@ -32,9 +40,9 @@ This repository contains the code, dataset, and complete evaluation outputs used
 │   ├── Closed Models/
 │   ├── Open Models/
 │   └── Quantized models/
-│       ├── Consistency/          # Per-question answer tracking (.xlsx)
+│       ├── Consistency/          # Per-question outcome of every run (.xlsx) = final dataset
 │       ├── Log/                  # Execution logs (.log)
-│       ├── Metrics/              # Per-run accuracy & scores (.xlsx)
+│       ├── Metrics/              # Per-run accuracy and scores (.xlsx)
 │       ├── Raw_Responses/        # Raw model outputs (.jsonl, Git LFS)
 │       └── Results/              # Aggregated results (.json)
 │
@@ -62,12 +70,12 @@ Each row in the Excel files has the following columns:
 
 ## Results
 
-The `Results/` folder contains the complete evaluation outputs for all 18 models, organized into three subcategories mirroring the code structure: `Closed Models/`, `Open Models/`, and `Quantized models/`. Each subcategory contains five subfolders:
+The `Results/` folder contains the complete evaluation outputs for all 18 models, organized into three subcategories mirroring the code structure: `Closed Models/`, `Open Models/`, and `Quantized models/`. Each subcategory contains the same five subfolders:
 
 | Subfolder | Format | Description |
 |---|---|---|
-| `Consistency/` | `.xlsx` | Per-question answer tracking across all 250 runs (5 years × 50 repetitions). Each row is a run (`{year}_run_{n}`); each column is a question (`Domanda_1` … `Domanda_140`). Values are `1` (correct), the original wrong letter, or `ND` (automated extraction failure). |
-| `Log/` | `.log` | Full execution logs with timestamps, per-question details, and error traces (see *Notes on execution logs* below). |
+| `Consistency/` | `.xlsx` | Per-question answer tracking across all 250 runs (5 years × 50 repetitions). Each row is a run (`{year}_run_{n}`); each column is a question (`Domanda_1` … `Domanda_140`). Values are `1` (correct) or the letter of the incorrect option chosen. These files are the final dataset used for all analyses: responses that could not be extracted automatically (`ND` at run time) were resolved as described in the paper (Section 2.4) and in *Answer extraction audit* below. |
+| `Log/` | `.log` | Full execution logs with timestamps, per-question details, and error traces (see *Notes on execution logs* below). Logs of the three Meditron3 GGUF runs were not archived. |
 | `Metrics/` | `.xlsx` | Per-run summary metrics including accuracy (%), SSM score (with −0.25 penalty for wrong answers), total time, and average response time per question. |
 | `Raw_Responses/` | `.jsonl` | One JSON object per question per run, containing the raw model output, the question and options as presented, extracted answer, timing, and correctness. Stored with Git LFS. |
 | `Results/` | `.json` | Aggregated results per model with overall statistics across all years and runs, including the completion timestamp. |
@@ -134,13 +142,42 @@ Full details are given in `Official_testing_code/README.md` and in each script.
 | Retry after failed extraction (open-weight and quantized only) | 0.01 | 0.95 | 20 |
 
 ## Exploratory item-type analysis
-The `Analysis/` folder contains the script used for the exploratory item-type analysis reported in the paper (ERQ, Supplementary Table S6) and its outputs. Run it from the repository root:
+
+`Analysis/stratified_itemtype_analysis.py` reproduces the exploratory item-type analysis reported in the paper (ERQ, Supplementary Table S6). Run it from the repository root:
+
+```
 python Analysis/stratified_itemtype_analysis.py
-The script reads the `Question type` and `Image` columns of the dataset and the `Consistency/` files of each model, computes the accuracy of each question across the 50 repetitions, and estimates the difference between knowledge-based and case-based items (text-only questions only) and between text-only and image-dependent items, with 95% bootstrap confidence intervals obtained by resampling questions (4,000 resamples, seed 2026). Outputs: `itemtype_results_by_model.csv` and `itemtype_results_by_group.csv`.
+```
+
+The script reads the `Question type` and `Image` columns of the dataset and the `Consistency/` files of each model, computes the accuracy of each question across the 50 repetitions, and estimates the difference between knowledge-based and case-based items (text-only questions only) and between text-only and image-dependent items, with 95% bootstrap confidence intervals obtained by resampling questions (4,000 resamples, seed 2026). Outputs: `Analysis/itemtype_results_by_model.csv` and `Analysis/itemtype_results_by_group.csv`.
 
 ## Answer extraction audit
-`Analysis/audit_extraction.py` audits answer extraction for all 630,000 responses. Run it from the repository root after `git lfs pull`: `python Analysis/audit_extraction.py`. For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the final dataset; and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually resolved responses.
 
+`Analysis/audit_extraction.py` audits answer extraction for all 630,000 responses. Run it from the repository root after `git lfs pull`:
+
+```
+python Analysis/audit_extraction.py
+```
+
+For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the final dataset; and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually resolved responses.
+
+## Statistical analysis
+
+`Analysis/repeated_runs_statistics.R` reproduces the between-model tests of the paper (Kruskal-Wallis and Dunn post-hoc tests with Holm correction, Table 4), the effect sizes reported in Tables 4 and 5, and Supplementary Table S10. Run it from the repository root (R packages: dplyr, tidyr, rstatix, readxl):
+
+```
+Rscript Analysis/repeated_runs_statistics.R
+```
+
+Inputs: `Candidate_analysis/data/llm_runs_long.csv`, `Candidate_analysis/data/candidate_scores_2020_2024.csv` and `Results/*/Consistency/consistency_*.xlsx`.
+
+Unit of analysis: in the Kruskal-Wallis, Dunn and Mann-Whitney tests, one run of one model on one examination year (140 questions); the 250 runs of each model are pooled for the comparisons between models, and the 50 runs of each year are compared with all candidates of that year. Because the runs of a model share the same questions, each pairwise difference is also estimated with the question as the unit of analysis (paired percentile bootstrap over the 700 questions, 4,000 resamples, seed 2026).
+
+Outputs in `Analysis/statistics_output/`: `kruskal_wallis_effect_sizes.csv` (H, df, p, Bonferroni-adjusted p, η²H), `pairwise_comparisons.csv` (difference in mean accuracy with item-level 95% CI, Cliff's δ, Holm-adjusted Dunn p), `quantization_vs_full_precision.csv`, `mann_whitney_effect_sizes.csv` (probability of superiority A for each model and year) and `llm_item_accuracy.csv` (accuracy of each model on each question).
+
+## Human reference data
+
+`Candidate_analysis/` contains the anonymised test scores of all candidates of the 2020–2024 examinations, the code used to extract them from the official national rankings, and the analysis that compares them with the models (Tables 2, 3 and 5, Figures 1–4, Supplementary Tables S8–S9). The original rankings contain personal data and are not distributed. See `Candidate_analysis/README.md`.
 
 ## Notes on execution logs
 
@@ -153,7 +190,6 @@ Logs are archived exactly as produced at run time and have not been edited. The 
 - **GPT 5.2 re-administered items.** Seven items (2020: Q8, Q116; 2021: Q139; 2022: Q100; 2023: Q89, Q116, Q120) returned an empty output in all 50 repetitions, as recorded in `gpt_medical_exam_test_v2.log` ("Non è stato possibile estrarre una lettera dalla risposta: ''"), because internal reasoning consumed the 50-token output budget. Immediately after the main evaluation, these 350 responses were re-administered with the same prompt and option order and a larger maximum output length. The corresponding entries of `raw_responses_gpt.jsonl` contain the re-administered outputs and keep the timestamps of the original administration. The temporary script used for the re-administration was not archived.
 - **Grok 4.1 re-extraction.** Grok frequently answered in a bracketed format (`[B]: …`) that the extraction function in `test_grok_medical_exam_v2.py` does not recognise. The function was updated during the evaluation, and all Grok responses were re-extracted with the final rule after completion (10,080 responses changed); the accuracy printed in the log therefore differs from the final results. The conservative re-extraction in `Analysis/audit_extraction.py` reproduces the final Grok letters for all 35,000 responses.
 - **Checkpoint resumption.** When a run was interrupted, the questions after the last checkpoint (at most 10) were administered again on resumption. For this reason, the per-run accuracy printed in some logs can differ from the accuracy computed from the raw output files by a few responses (see `Analysis/audit_output/log_check_by_model.csv`).
-
 
 ## License
 
