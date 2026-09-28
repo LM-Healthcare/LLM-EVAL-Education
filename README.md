@@ -130,6 +130,9 @@ The `Analysis/` folder contains the script used for the exploratory item-type an
 python Analysis/stratified_itemtype_analysis.py
 The script reads the `Question type` and `Image` columns of the dataset and the `Consistency/` files of each model, computes the accuracy of each question across the 50 repetitions, and estimates the difference between knowledge-based and case-based items (text-only questions only) and between text-only and image-dependent items, with 95% bootstrap confidence intervals obtained by resampling questions (4,000 resamples, seed 2026). Outputs: `itemtype_results_by_model.csv` and `itemtype_results_by_group.csv`.
 
+## Answer extraction audit
+`Analysis/audit_extraction.py` audits answer extraction for all 630,000 responses. Run it from the repository root after `git lfs pull`: `python Analysis/audit_extraction.py`. For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the final dataset; and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually resolved responses.
+
 
 ## Notes on execution logs
 
