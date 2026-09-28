@@ -8,6 +8,14 @@ This repository contains the code, dataset, and complete evaluation outputs used
 
 ```
 .
+|── Analysis
+|   
+|── Candidate_analysis/          # Anonymised human-candidate scores and human-referenced analysis
+|   ├── data/
+│   ├── output/
+│   ├── script/
+│   └── README.md
+|
 ├── Dataset/                      # Exam questions (2020-2024)
 │   ├── 2020_SSM_[checked].xlsx
 │   ├── 2021_SSM_[checked].xlsx
