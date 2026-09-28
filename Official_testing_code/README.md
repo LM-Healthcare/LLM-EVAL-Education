@@ -55,6 +55,8 @@ No retry is performed for closed-source models: unparsed responses are recorded 
 
 **Note on the Mistral identifier.** At the time of the evaluation (14–16 February 2026), `test_mistral_medical_exam_v2.py` contained the identifier string `mistral-large-2411`, which is therefore the string recorded in `mistral_medical_exam_test_v2.log` and `results_mistral.json`. The provider usage records for the evaluation period confirm that the requests were served by `mistral-large-2512` (Mistral Large 3), the model reported in the paper. The script was corrected to `mistral-large-2512` on 18 September 2026; the log and result files are kept as originally produced.
 
+**Note on answer extraction for closed-source models.** The closed-source parser does not recognise the bracketed format `[X]: …` used by Grok 4.1, and its fallback stages (keyword patterns and isolated-letter scan) can return a letter even when the output contains no explicit answer. Grok responses were re-extracted after the evaluation, and seven GPT 5.2 items that returned empty outputs were re-administered with a larger output budget; the manually resolved and re-extracted responses of all models are documented in `Analysis/audit_output/` (see the main README).
+
 ### Open-Weight Models (HuggingFace Transformers)
 
 Open-weight models use a **two-stage generation strategy**:
