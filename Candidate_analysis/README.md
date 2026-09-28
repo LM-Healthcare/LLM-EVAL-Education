@@ -2,7 +2,7 @@
 
 This folder contains the anonymised human-candidate scores used as reference in the paper, the code
 that builds them from the official national rankings, and the analysis that compares them with the
-models (Tables 2 and 5, Figures 1–4, Supplementary Tables S8–S9).
+models (Tables 2, 3 and 5, Figures 1–4, Supplementary Tables S8–S9).
 
 ## Source of the candidate data
 

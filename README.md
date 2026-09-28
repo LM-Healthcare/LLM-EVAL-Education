@@ -11,6 +11,9 @@ This repository contains the code, dataset, and complete evaluation outputs used
 ├── Analysis/                     # Analyses added during peer review (see sections below)
 │   ├── audit_extraction.py       # Answer extraction audit (630,000 responses)
 │   ├── audit_output/             # Outputs of the audit
+│   ├── check_final_dataset_vs_raw.py      # Final dataset vs raw outputs, cell by cell
+│   ├── compare_dataset_administered.py    # Dataset/ text vs text administered at run time
+│   ├── dataset_vs_administered_text.csv
 │   ├── manual_resolution_review_R2.xlsx   # Second, independent review of manual resolutions
 │   ├── stratified_itemtype_analysis.py    # Exploratory item-type analysis (ERQ)
 │   ├── itemtype_results_by_model.csv
@@ -34,7 +37,8 @@ This repository contains the code, dataset, and complete evaluation outputs used
 ├── Official_testing_code/        # Evaluation scripts for all models (see its own README)
 │   ├── Closed/                   # Proprietary / API-based models
 │   ├── Open/                     # Open-weight models (Hugging Face Transformers)
-│   └── Quantized/                # GGUF quantized models (llama-cpp-python)
+│   ├── Quantized/                # GGUF quantized models (llama-cpp-python)
+│   └── prepare_dataset.py        # Converts Dataset/ to the input format of the scripts
 │
 ├── Results/                      # Full evaluation outputs
 │   ├── Closed Models/
@@ -68,15 +72,26 @@ Each row in the Excel files has the following columns:
 
 **Image-dependent questions** were administered to all models in text-only form: images were not provided, and models were not informed that the original question contained visual content.
 
+### Dataset version
+
+The files in `Dataset/` are the checked transcription of the questions. The text actually administered to the models was an earlier version of the same files and is recorded, for every response, in the `question` and `options` fields of the raw output files. The administered text is identical for all 18 models, except for 2023 Q134 (see below). `Analysis/compare_dataset_administered.py` lists every difference between the two versions in `Analysis/dataset_vs_administered_text.csv`:
+
+- in most cases the differences are typographic (ligatures such as "ﬁ" from the source PDF files, accents, apostrophes, spacing) or consist of a page-footer fragment of the source PDF ("del 12") appended to an option (31 options of the 2020 examination), or of minor wording and spelling differences;
+- in seven questions the administered options were defective: 2020 Q112 (image-dependent; option text split across options), 2022 Q9, Q41, Q77 and Q119 (a distractor replaced by, or extended with, explanatory text from the source), 2022 Q100 (correct option replaced by explanatory text) and 2023 Q134, whose answer options were missing (`nan`) in the runs of Meditron3-8B (all four variants), Qwen3-1.7B, Qwen3-4B, Qwen3-8B and Ministral-3B; for all models the option texts were also present, without letters, at the end of the question stem.
+
+These questions were scored as all other questions. Excluding them changes the overall accuracy of each model by at most 0.14 percentage points.
+
+To run the evaluation scripts on the exact administered text, `Official_testing_code/prepare_dataset.py --source raw` rebuilds the question files from a raw output file (see `Official_testing_code/README.md`).
+
 ## Results
 
 The `Results/` folder contains the complete evaluation outputs for all 18 models, organized into three subcategories mirroring the code structure: `Closed Models/`, `Open Models/`, and `Quantized models/`. Each subcategory contains the same five subfolders:
 
 | Subfolder | Format | Description |
 |---|---|---|
-| `Consistency/` | `.xlsx` | Per-question answer tracking across all 250 runs (5 years × 50 repetitions). Each row is a run (`{year}_run_{n}`); each column is a question (`Domanda_1` … `Domanda_140`). Values are `1` (correct) or the letter of the incorrect option chosen. These files are the final dataset used for all analyses: responses that could not be extracted automatically (`ND` at run time) were resolved as described in the paper (Section 2.4) and in *Answer extraction audit* below. |
+| `Consistency/` | `.xlsx` | Per-question answer tracking across all 250 runs (5 years × 50 repetitions). Each row is a run (`{year}_run_{n}`); each column is a question (`Domanda_1` … `Domanda_140`). Values are `1` (correct) or the letter (in the original, unshuffled order) of the incorrect option chosen. These files are the final dataset used for all analyses: responses that could not be extracted automatically (`ND` at run time) were resolved as described in the paper (Section 2.4) and in *Answer extraction audit* below. |
 | `Log/` | `.log` | Full execution logs with timestamps, per-question details, and error traces (see *Notes on execution logs* below). Logs of the three Meditron3 GGUF runs were not archived. |
-| `Metrics/` | `.xlsx` | Per-run summary metrics including accuracy (%), SSM score (with −0.25 penalty for wrong answers), total time, and average response time per question. |
+| `Metrics/` | `.xlsx` | Per-run summary metrics including accuracy (%; as a proportion in the GPT 5.2 and Grok 4.1 files), SSM score (with −0.25 penalty for wrong answers), total time, and average response time per question. |
 | `Raw_Responses/` | `.jsonl` | One JSON object per question per run, containing the raw model output, the question and options as presented, extracted answer, timing, and correctness. Stored with Git LFS. |
 | `Results/` | `.json` | Aggregated results per model with overall statistics across all years and runs, including the completion timestamp. |
 
@@ -128,6 +143,10 @@ Evaluation dates are taken from the execution logs (first run start → last run
 
 † Execution logs for the Meditron3 GGUF runs were not archived; the date is the `test_completed` timestamp recorded in the corresponding `Results/*.json` file. All other outputs (consistency, metrics, raw responses, aggregated results) are available.
 
+## Running the evaluation scripts
+
+The scripts read the questions from `{year}_answers_converted_[checked].xlsx` files with Italian column names, in the folder given in `dataset_path`. `Official_testing_code/prepare_dataset.py` creates these files from `Dataset/` (or, with `--source raw`, from the administered text); instructions are given in `Official_testing_code/README.md`.
+
 ## Generation Parameters (summary)
 
 Full details are given in `Official_testing_code/README.md` and in each script.
@@ -159,7 +178,9 @@ The script reads the `Question type` and `Image` columns of the dataset and the 
 python Analysis/audit_extraction.py
 ```
 
-For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the final dataset; and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually resolved responses.
+For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the raw output file after manual resolution (`extracted_letter`); and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually resolved responses.
+
+The letter stored in the raw output files coincides with the final dataset (`Consistency/` files) except for 89 of the 630,000 responses, listed by `Analysis/check_final_dataset_vs_raw.py` in `Analysis/audit_output/final_dataset_vs_raw.csv`: 77 concern 2023 Q134 in Ministral-3B and Qwen3-8B (see *Dataset version*), 11 are isolated responses of GPT 5.2 (2), MedGemma 1.5-4B (1), Meditron3-8B (1), MedGemma 1.5-4B-Q4_K_M (5) and MedGemma 1.5-4B-Q8_0 (2), and one Grok 4.1 response (2021, run 5, Q13) is missing from the raw file. For this reason the accuracies in `summary_by_model.csv` (`stored_accuracy_%`) differ from those computed from the final dataset by at most 0.11 percentage points.
 
 ## Statistical analysis
 
@@ -188,7 +209,7 @@ Logs are archived exactly as produced at run time and have not been edited. The 
 - **Aborted start-up attempts.** Some logs begin with short aborted attempts (e.g., `No such file or directory` errors caused by local dataset paths). These attempts did not produce any response; the evaluation starts at the first `Run 1/50` entry.
 - **Language.** Closed-model logs are partly in Italian (e.g., *Anno* = year, *Processando domanda* = processing question, *completata* = completed).
 - **GPT 5.2 re-administered items.** Seven items (2020: Q8, Q116; 2021: Q139; 2022: Q100; 2023: Q89, Q116, Q120) returned an empty output in all 50 repetitions, as recorded in `gpt_medical_exam_test_v2.log` ("Non è stato possibile estrarre una lettera dalla risposta: ''"), because internal reasoning consumed the 50-token output budget. Immediately after the main evaluation, these 350 responses were re-administered with the same prompt and option order and a larger maximum output length. The corresponding entries of `raw_responses_gpt.jsonl` contain the re-administered outputs and keep the timestamps of the original administration. The temporary script used for the re-administration was not archived.
-- **Grok 4.1 re-extraction.** Grok frequently answered in a bracketed format (`[B]: …`) that the extraction function in `test_grok_medical_exam_v2.py` does not recognise. The function was updated during the evaluation, and all Grok responses were re-extracted with the final rule after completion (10,080 responses changed); the accuracy printed in the log therefore differs from the final results. The conservative re-extraction in `Analysis/audit_extraction.py` reproduces the final Grok letters for all 35,000 responses.
+- **Grok 4.1 re-extraction.** Grok frequently answered in a bracketed format (`[B]: …`) that the extraction function in `test_grok_medical_exam_v2.py` does not recognise. The function was updated during the evaluation, and all Grok responses were re-extracted with the final rule after completion (10,080 responses changed); the accuracy printed in the log therefore differs from the final results. The conservative re-extraction in `Analysis/audit_extraction.py` reproduces the final Grok letters for all 34,999 archived responses.
 - **Checkpoint resumption in MedGemma 1.5-4B-Q8_0.** In five runs of MedGemma 1.5-4B-Q8_0 that were interrupted and resumed from a checkpoint (2021: runs 19, 21, 35 and 50; 2022: run 6), the answers given after the resumption were written to the wrong columns of the Consistency file at run time: they were stored from the question following the last multiple of 10, so the answers between that question and the resumption point were lost and the last cells of the row were left empty. These five rows of `consistency_MedGemma_4B_Q8_0.xlsx` were rebuilt from `raw_responses_MedGemma_4B_Q8_0.jsonl`, in which every response is stored with its own question index. The Metrics, Results and Log files are kept as produced and therefore report the original per-run values for these five runs.
 - **Checkpoint resumption.** When a run was interrupted, the questions after the last checkpoint (at most 10) were administered again on resumption. For this reason, the per-run accuracy printed in some logs can differ from the accuracy computed from the raw output files by a few responses (see `Analysis/audit_output/log_check_by_model.csv`).
 

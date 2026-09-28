@@ -46,3 +46,6 @@ models/
 *.gguf
 *.bin
 *.safetensors
+
+# Working folder for prepare_dataset.py and local runs
+run/

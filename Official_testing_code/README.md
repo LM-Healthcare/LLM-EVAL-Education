@@ -9,8 +9,27 @@ Official_testing_code/
 ├── Closed/          # API-based models (GPT, Claude, DeepSeek, Grok, Mistral, Qwen)
 ├── Open/            # Open-weight models via HuggingFace Transformers
 ├── Quantized/       # GGUF quantized models via llama-cpp-python
+├── prepare_dataset.py   # Builds the input files expected by the scripts
 └── README.md
 ```
+
+---
+
+## Running the Scripts
+
+The scripts read, from the folder given in `dataset_path` in `main()` (default `Dataset`, relative to the working directory), one file per year named `{year}_answers_converted_[checked].xlsx`, with the columns `Domanda` and `Risposta A` … `Risposta E` (`Risposta A` = correct answer). The files in the repository's `Dataset/` folder use English column names and a different file name, so they are first converted with `prepare_dataset.py`. From the repository root:
+
+```
+python Official_testing_code/prepare_dataset.py            # writes run/Dataset/ from Dataset/
+cd run
+python ../Official_testing_code/Closed/test_deepseek_medical_exam_v2.py
+```
+
+With `--source raw --raw-file <raw_responses_*.jsonl>`, `prepare_dataset.py` rebuilds the question files from the text actually administered at run time, recorded in the raw output files (see *Dataset version* in the main README).
+
+- API keys are requested interactively at start-up; no key is stored in the scripts.
+- `test_gpt_medical_exam_v2.py` and `test_meditron3_gguf_medical_exam.py` contain the absolute paths of the machine used for the evaluation (`dataset_path`, and `MODELS_PATH` for the Meditron3 GGUF files); edit them before running. The MedGemma GGUF scripts expect the model files in `Quantized/models/medgemma-gguf/`.
+- Outputs (results, consistency, metrics, raw responses, logs and checkpoints) are written to the working directory.
 
 ---
 

@@ -34,8 +34,8 @@ B <- 4000
 out_dir <- "Analysis/statistics_output"; dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 runs  <- read.csv("Candidate_analysis/data/llm_runs_long.csv")
-# item-level accuracy from the Consistency files (1 = correct; letter given = incorrect; empty cell =
-# no answer extracted, counted as incorrect exactly as in the run totals of llm_runs_long.csv)
+# item-level accuracy from the Consistency files (1 = correct; letter = incorrect option chosen;
+# an empty cell, if present, would be counted as incorrect, as in the run totals of llm_runs_long.csv)
 key <- c(claude = "CLA", deepseek = "DPSK", `gpt-52-2025-12-11` = "GPT", grok = "GROK", mistral = "MSTRL",
          qwen = "QWEN", MedGemma_4B_IT = "MG4B", Meditron3_8B_FP16 = "MT8B", Ministral_3B_Instruct = "mSTRL3B",
          Qwen3_1_7B = "Q1_7B", Qwen3_4B_Instruct = "Q4B", Qwen3_8B = "Q8B", MedGemma_4B_Q4_K_M = "MG4Bq4",
