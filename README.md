@@ -125,6 +125,11 @@ Full details are given in `Official_testing_code/README.md` and in each script.
 | MedGemma 1.5 4B IT (Transformers and GGUF) | greedy decoding (no sampling) | – | 2,048 |
 | Retry after failed extraction (open-weight and quantized only) | 0.01 | 0.95 | 20 |
 
+## Exploratory item-type analysis
+The `Analysis/` folder contains the script used for the exploratory item-type analysis reported in the paper (RQ6, Supplementary Table S6) and its outputs. Run it from the repository root:
+python Analysis/stratified_itemtype_analysis.py
+The script reads the `Question type` and `Image` columns of the dataset and the `Consistency/` files of each model, computes the accuracy of each question across the 50 repetitions, and estimates the difference between knowledge-based and case-based items (text-only questions only) and between text-only and image-dependent items, with 95% bootstrap confidence intervals obtained by resampling questions (4,000 resamples, seed 2026). Outputs: `itemtype_results_by_model.csv` and `itemtype_results_by_group.csv`.
+
 
 ## Notes on execution logs
 
