@@ -38,6 +38,9 @@ All closed-source models use **identical** generation parameters:
 |---|---|---|
 | `temperature` | `0.1` | Low temperature for near-deterministic output with slight variability across runs |
 | `max_tokens` | `50` | Sufficient for the expected answer format (`LETTER: option text`) |
+| `top_p` | not set | The provider's default value applies |
+
+No retry is performed for closed-source models: unparsed responses are recorded as `ND`.
 
 | Script | Model | API |
 |---|---|---|
@@ -50,6 +53,8 @@ All closed-source models use **identical** generation parameters:
 
 **GPT** uses `max_completion_tokens=50` instead of `max_tokens=50` (OpenAI SDK naming convention).
 
+**Note on the Mistral identifier.** At the time of the evaluation (14–16 February 2026), `test_mistral_medical_exam_v2.py` contained the identifier string `mistral-large-2411`, which is therefore the string recorded in `mistral_medical_exam_test_v2.log` and `results_mistral.json`. The provider usage records for the evaluation period confirm that the requests were served by `mistral-large-2512` (Mistral Large 3), the model reported in the paper. The script was corrected to `mistral-large-2512` on 18 September 2026; the log and result files are kept as originally produced.
+
 ### Open-Weight Models (HuggingFace Transformers)
 
 Open-weight models use a **two-stage generation strategy**:
@@ -59,7 +64,7 @@ Open-weight models use a **two-stage generation strategy**:
 | Parameter | Value | Notes |
 |---|---|---|
 | `temperature` | `0.1` | Low temperature, same rationale as closed models |
-| `max_new_tokens` | `50` | Short answer expected |
+| `max_new_tokens` | `50` (`100` for Meditron3-8B) | Short answer expected |
 | `top_p` | `0.95` | Nucleus sampling |
 | `do_sample` | `True` | Enables stochastic sampling |
 
@@ -86,7 +91,9 @@ MedGemma uses full reasoning mode natively and is configured differently:
 | `do_sample` | `False` | Greedy decoding |
 | `temperature` | N/A | Not applicable with greedy decoding |
 
-Retry uses `temperature=0.01`, `max_new_tokens=20`, `do_sample=True`.
+Retry uses `temperature=0.01`, `top_p=0.95`, `max_new_tokens=20`, `do_sample=True`.
+
+Because the primary generation is greedy, variability across the 50 repetitions for MedGemma arises solely from the randomized ordering of the answer options.
 
 | Script | Model | HuggingFace ID | Precision |
 |---|---|---|---|
@@ -103,12 +110,12 @@ Retry uses `temperature=0.01`, `max_new_tokens=20`, `do_sample=True`.
 
 | Parameter | Value | Notes |
 |---|---|---|
-| `temperature` | `0.1` | Fully deterministic primary generation |
+| `temperature` | `0` | Greedy (deterministic) primary generation, consistent with the full-precision MedGemma |
 | `max_tokens` | `2048` | Full reasoning chain supported |
 
-Retry: `temperature=0.01`, `max_tokens=20`, `top_p=0.95`.
+Retry on extraction failure: `temperature=0.01`, `max_tokens=20`, `top_p=0.95`.
 
-#### Meditron3 GGUF
+#### Meditron3 GGUF (Q4_K_M, Q6_K, Q8_0)
 
 | Parameter | Value | Notes |
 |---|---|---|
@@ -116,14 +123,18 @@ Retry: `temperature=0.01`, `max_tokens=20`, `top_p=0.95`.
 | `max_tokens` | `50` | Short answer expected |
 | `top_p` | `0.95` | Nucleus sampling |
 
-If thinking mode is detected, retried with `max_tokens=2048`.
+If thinking mode is detected, generation is repeated with `max_tokens=2048`. This script does not include the simplified-prompt retry used by the other open-weight and quantized scripts; no extraction failures occurred in the Meditron3 GGUF runs (`extraction_failures: 0` in the result files).
 
-| Script | Model | Quantization |
-|---|---|---|
-| `test_medgemma_4b_Q4_K_M_medical_exam.py` | MedGemma 1.5 4B IT | Q4_K_M |
-| `test_medgemma_4b_Q6_K_medical_exam.py` | MedGemma 1.5 4B IT | Q6_K |
-| `test_medgemma_4b_Q8_0_medical_exam.py` | MedGemma 1.5 4B IT | Q8_0 |
-| `test_meditron3_gguf_medical_exam.py` | Meditron3-8B | GGUF |
+A single script handles all Meditron3 quantization levels, selected at launch. The script also supports `Q5_K_M`, which was not evaluated in the study.
+
+| Script | Model | Quantization | GGUF file (Hugging Face repository) |
+|---|---|---|---|
+| `test_medgemma_4b_Q4_K_M_medical_exam.py` | MedGemma 1.5 4B IT | Q4_K_M | `medgemma-1.5-4b-it.Q4_K_M.gguf` (`mradermacher/medgemma-1.5-4b-it-GGUF`) |
+| `test_medgemma_4b_Q6_K_medical_exam.py` | MedGemma 1.5 4B IT | Q6_K | `medgemma-1.5-4b-it.Q6_K.gguf` (`mradermacher/medgemma-1.5-4b-it-GGUF`) |
+| `test_medgemma_4b_Q8_0_medical_exam.py` | MedGemma 1.5 4B IT | Q8_0 | `medgemma-1.5-4b-it.Q8_0.gguf` (`mradermacher/medgemma-1.5-4b-it-GGUF`) |
+| `test_meditron3_gguf_medical_exam.py` | Meditron3-8B | Q4_K_M | `Meditron3-8B.Q4_K_M.gguf` (`QuantFactory/Meditron3-8B-GGUF`) |
+| `test_meditron3_gguf_medical_exam.py` | Meditron3-8B | Q6_K | `Meditron3-8B.Q6_K.gguf` (`QuantFactory/Meditron3-8B-GGUF`) |
+| `test_meditron3_gguf_medical_exam.py` | Meditron3-8B | Q8_0 | `Meditron3-8B.Q8_0.gguf` (`QuantFactory/Meditron3-8B-GGUF`) |
 
 ---
 
@@ -256,4 +267,6 @@ Each script produces the following output files:
 | `metrics_{model}.xlsx` | Per-run accuracy, score, time, and consistency |
 | `raw_responses_{model}.jsonl` | Raw model responses with full context (question, options, timing) |
 | `checkpoint_{model}.json` | Resumption checkpoint (deleted on completion) |
-| `{model}_medical_exam_test.log` | Execution log |
+| `{model}_medical_exam_test.log` | Execution log (`{model}_medical_exam_test_v2.log` for closed-source scripts) |
+
+The outputs of the runs reported in the paper are archived in the `Results/` folder at the repository root. The start-up banner printed in the logs (`INIZIALIZZAZIONE TEST ...`) is a hard-coded string that was not always updated; the model actually queried is given in the following line (`Inizializzato tester con modello ...`). See the main README for details.
