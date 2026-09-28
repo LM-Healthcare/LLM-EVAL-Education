@@ -125,6 +125,7 @@ Full details are given in `Official_testing_code/README.md` and in each script.
 | MedGemma 1.5 4B IT (Transformers and GGUF) | greedy decoding (no sampling) | – | 2,048 |
 | Retry after failed extraction (open-weight and quantized only) | 0.01 | 0.95 | 20 |
 
+
 ## Notes on execution logs
 
 Logs are archived exactly as produced at run time and have not been edited. The following points help their interpretation:
