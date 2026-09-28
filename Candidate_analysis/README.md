@@ -44,8 +44,9 @@ Candidates may leave questions unanswered, whereas the models answered every que
 Candidate_analysis/
 ├── data/
 │   ├── candidate_scores_2020_2024.csv   year, rank_order, total_score, test_score, titles_score
-│   └── llm_runs_long.csv                one row per model × year × run (from Results/*/Consistency)
+│   └── llm_runs_long.csv                one row per model × year × run (built from Results/*/Consistency)
 ├── scripts/
+│   ├── build_llm_runs_long.py           builds data/llm_runs_long.csv from the Consistency files
 │   ├── extract_rankings.py              builds data/candidate_scores_2020_2024.csv from the original
 │   │                                    rankings (requires the original files, not distributed)
 │   └── candidate_analysis.R             descriptives, percentiles, Mann-Whitney tests, tables, figures
@@ -77,8 +78,11 @@ Candidate_analysis/
 From this folder:
 
 ```
+python scripts/build_llm_runs_long.py       # rebuilds data/llm_runs_long.csv from ../Results
 Rscript scripts/candidate_analysis.R        # uses data/ only; writes outputs/
 python scripts/extract_rankings.py          # only with the original rankings in original_rankings/
 ```
 
-R packages: ggplot2, dplyr, tidyr, ggtext, patchwork, scales, openxlsx.
+R packages: ggplot2, dplyr, tidyr, ggtext, patchwork, scales, openxlsx. Python: pandas, openpyxl (and pdfplumber for the extraction).
+
+The CSV files in `data/` are comma-separated with a dot as decimal separator. Opening and re-saving them with a spreadsheet program set to a different locale can change the separators and corrupt long decimal numbers; if needed, regenerate them with the scripts above.
