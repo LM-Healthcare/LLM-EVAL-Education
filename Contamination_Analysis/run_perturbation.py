@@ -149,6 +149,9 @@ def main():
     ap.add_argument("--model", required=True, choices=sorted(MODELS))
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--items", default=os.path.join(ROOT, "Contamination_analysis", "items.csv"))
+    ap.add_argument("--model-id", default=None,
+                    help="API models only: query this model identifier instead of the script's one "
+                         "(e.g. a dated snapshot of a retired alias); recorded in every output line")
     ap.add_argument("--conditions", nargs="+", default=CONDITIONS, choices=CONDITIONS)
     ap.add_argument("--decoding", default="default", choices=["default", "sampled"])
     ap.add_argument("--outdir", default=os.path.join(ROOT, "Contamination_analysis", "results"))
@@ -177,6 +180,11 @@ def main():
         tester.raw_responses_handle.close()
         tester.raw_responses_handle = open(raw_file, "a", encoding="utf-8")
     tester.raw_responses_file = raw_file
+    if a.model_id:
+        if MODELS[a.model][2] != "api":
+            sys.exit("--model-id is available only for API models")
+        print(f"{a.model}: querying {a.model_id} instead of {tester.model_name}")
+        tester.model_name = a.model_id
     if a.decoding == "sampled":
         generate = tester.model.generate
 
@@ -210,7 +218,7 @@ def main():
                                      "then relaunch the same command to resume.")
                         continue
                     fails = 0
-                    rec = {"model": a.model, "decoding": a.decoding, "condition": cond, "run": run, "year": y, "question_idx": q,
+                    rec = {"model": a.model, "model_id": tester.model_name, "decoding": a.decoding, "condition": cond, "run": run, "year": y, "question_idx": q,
                            "question_type": item["question_type"],
                            "options": dict(zip(LETTERS, opts)), "correct_letter": corr, "nota_letter": nota,
                            "answer": answer, "is_correct": answer == corr,

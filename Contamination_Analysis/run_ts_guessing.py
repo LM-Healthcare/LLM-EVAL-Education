@@ -66,6 +66,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, choices=[m for m, v in MODELS.items() if v[2] == "api"])
     ap.add_argument("--items", default=os.path.join(ROOT, "Contamination_analysis", "items.csv"))
+    ap.add_argument("--model-id", default=None, help="query this model identifier instead of the script's one")
     ap.add_argument("--outdir", default=os.path.join(ROOT, "Contamination_analysis", "results"))
     a = ap.parse_args()
     items = pd.read_csv(a.items)
@@ -77,6 +78,9 @@ def main():
             done = {(r["year"], r["question_idx"]) for r in map(json.loads, filter(str.strip, fh))}
     os.chdir(a.outdir)
     tester = load_tester(a.model)
+    if a.model_id:
+        print(f"{a.model}: querying {a.model_id} instead of {tester.model_name}")
+        tester.model_name = a.model_id
     fails = 0
     with open(out_file, "a", encoding="utf-8") as out:
         for _, it in items.iterrows():
@@ -101,7 +105,7 @@ def main():
                     sys.exit("Stopped after 5 consecutive failed calls: check the error above, "
                              "then relaunch the same command to resume.")
                 continue
-            out.write(json.dumps({"model": a.model, "year": y, "question_idx": q, "masked_letter": letter,
+            out.write(json.dumps({"model": a.model, "model_id": tester.model_name, "year": y, "question_idx": q, "masked_letter": letter,
                                   "target": opts[masked_idx], "response": text,
                                   "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S")}, ensure_ascii=False) + "\n")
             out.flush()

@@ -108,9 +108,34 @@ def check(key):
             print(f"FAIL {target:<9} {e}")
 
 
+def check_endpoints(key):
+    """Active OpenRouter endpoints (providers) of each model, and a call without a pinned provider."""
+    h = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    for target, (_, model_id, _, extra) in TARGETS.items():
+        try:
+            r = requests.get(f"https://openrouter.ai/api/v1/models/{model_id}/endpoints", headers=h, timeout=60)
+            data = r.json().get("data", {}) if r.status_code == 200 else {}
+            eps = [(e.get("provider_name"), e.get("status")) for e in data.get("endpoints", [])]
+            print(f"{target:<9} endpoints (HTTP {r.status_code}): {eps or r.text[:200]}")
+        except Exception as e:
+            print(f"{target:<9} endpoints: {e}")
+        body = {"model": model_id, "temperature": 0.1, "max_tokens": 20, **extra,
+                "messages": [{"role": "user", "content": "Rispondi solo con la lettera A."}]}
+        r = _post(URL, headers=h, json=body, timeout=120)
+        try:
+            b = r.json()
+        except ValueError:
+            b = {}
+        if r.status_code == 200:
+            print(f"          unpinned call OK: model={b.get('model')} provider={b.get('provider')}")
+        else:
+            print(f"          unpinned call HTTP {r.status_code}: {str(b.get('error', b))[:200]}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--endpoints", action="store_true", help="list active providers and try unpinned calls")
     ap.add_argument("--model", choices=sorted(TARGETS))
     ap.add_argument("--task", choices=["perturbation", "ts_guessing"])
     ap.add_argument("--runs", type=int, default=5)
@@ -118,6 +143,9 @@ def main():
     a = ap.parse_args()
     if a.check:
         check(get_key())
+        return
+    if a.endpoints:
+        check_endpoints(get_key())
         return
     if not (a.model and a.task):
         ap.error("--model and --task are required (or use --check)")

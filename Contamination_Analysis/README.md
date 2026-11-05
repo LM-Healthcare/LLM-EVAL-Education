@@ -4,10 +4,14 @@ Two analyses added in response to Reviewer 3, Comment 1, on a common set of 150 
 
 ## Items
 
-`items.csv` (built by `select_items.py`, seed 2026): 30 items per examination year, drawn from the
-text-only questions whose options do not already contain a "none/all of the other answers" option,
-whose stem is not negatively worded, and that are not among the seven questions with defective
-administered options (main README, *Dataset version*). The item text is that of `Dataset/`.
+`items.csv` (built by `select_items.py`, seed 2026): 30 items per examination year, drawn at random from
+the text-only questions whose options do not already contain a "none/all of the other answers" option,
+whose stem is not negatively worded (the question asks for the exception or the false statement), and
+that are not among the seven questions with defective administered options (main README, *Dataset
+version*). The item text is that of `Dataset/`.
+
+`finalize_results.py` aligns the result files with `items.csv` (keeps only the listed items, removes
+duplicates, sorts the lines) and reports whether every model is complete.
 
 ## 1. Answer perturbation (`run_perturbation.py`)
 
@@ -38,6 +42,31 @@ near-exact reproduction indicates prior exposure to the item.
 ```
 python Contamination_analysis/run_ts_guessing.py --model gpt
 ```
+
+## Models no longer available through their original API (`run_openrouter.py`)
+
+Between the main evaluation (February 2026) and the revision (November 2026) three API models
+became unavailable through the endpoints used in the study: the DeepSeek alias `deepseek-chat` was
+retired on 24 July 2026, the alias `qwen3-max` is no longer served, and Mistral Large 3 is no longer
+included in the authors' Mistral subscription tier. `run_openrouter.py` queries the same models through
+OpenRouter, reusing the original tester classes unchanged except for endpoint, model identifier and key:
+
+| Model | OpenRouter id | Provider | Notes |
+|---|---|---|---|
+| DeepSeek V3.2 | `deepseek/deepseek-v3.2` | OpenRouter routing (or `--provider`) | reasoning disabled, as `deepseek-chat` |
+| Mistral Large 3 | `mistralai/mistral-large-2512` | Mistral (pinned) | |
+| Qwen3-Max | `qwen/qwen3-max` | Alibaba (pinned) | |
+
+The model and provider that served each call are recorded in `results/openrouter_calls.jsonl`.
+
+```
+python Contamination_analysis/run_openrouter.py --check
+python Contamination_analysis/run_openrouter.py --model mistral --task perturbation --runs 5
+python Contamination_analysis/run_openrouter.py --model mistral --task ts_guessing
+```
+
+The Mistral and Qwen testers pause 3–4 s and 1–1.5 s between calls (as in the main study), so 2,250
+responses take about 2.5 h and 1 h.
 
 ## 3. MedGemma under sampled decoding (Reviewer 3, Comment 5)
 
