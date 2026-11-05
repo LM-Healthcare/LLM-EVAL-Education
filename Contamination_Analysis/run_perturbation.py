@@ -33,7 +33,6 @@ Output: Contamination_analysis/results/perturbation_<model>[_sampled].jsonl (one
 import argparse
 import getpass
 import importlib.util
-import inspect
 import json
 import os
 import random
@@ -77,7 +76,7 @@ def load_tester(name):
         key = os.environ.get(env) or getpass.getpass(f"API key for {name} ({env}): ")
         tester = Tester(key)
         if name == "claude":
-            patch_anthropic(tester)
+            patch_anthropic(tester, key)
         return tester
     if name == "medgemma":
         return Tester(device="auto")
@@ -85,26 +84,36 @@ def load_tester(name):
     return Tester(device="cuda" if torch.cuda.is_available() else "cpu")
 
 
-def patch_anthropic(tester):
-    """Recent versions of the anthropic SDK no longer accept `temperature` as a keyword of
-    messages.create(). The parameter is then sent unchanged in the request body, so that the
-    request is the same as in the main study."""
-    create = tester.client.messages.create
-    try:
-        accepts = "temperature" in inspect.signature(create).parameters
-    except (TypeError, ValueError):
-        accepts = True
-    if accepts:
-        return
+def patch_anthropic(tester, api_key):
+    """Send Claude requests directly to the Messages REST API instead of through the installed
+    anthropic SDK, whose recent versions changed the interface of messages.create() and, on some
+    installations, fail to read valid responses. The request (model, system prompt, max_tokens,
+    temperature, messages) is exactly the one built by the original script."""
+    import requests
+    from types import SimpleNamespace
 
-    def create_compat(*args, **kw):
-        extra = dict(kw.pop("extra_body", None) or {})
-        for k in ("temperature", "top_p", "top_k"):
-            if k in kw:
-                extra[k] = kw.pop(k)
-        return create(*args, extra_body=extra, **kw)
-    tester.client.messages.create = create_compat
-    print("anthropic SDK: temperature sent in the request body (extra_body)")
+    def create(**kw):
+        body = {k: v for k, v in kw.items() if v is not None and k != "extra_body"}
+        body.update(kw.get("extra_body") or {})
+        headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+        for attempt in range(6):
+            try:
+                r = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=body, timeout=120)
+            except requests.RequestException as e:
+                err = str(e)
+            else:
+                if r.status_code == 200:
+                    blocks = r.json().get("content", [])
+                    return SimpleNamespace(content=[SimpleNamespace(type=b.get("type"), text=b.get("text", ""))
+                                                    for b in blocks] or [SimpleNamespace(type="text", text="")])
+                err = f"HTTP {r.status_code}: {r.text[:300]}"
+                if r.status_code not in (408, 429, 500, 502, 503, 504, 529):
+                    break
+            time.sleep(2 * 2 ** attempt)
+        raise RuntimeError(f"Anthropic API error: {err}")
+
+    tester.client.messages.create = create
+    print("Claude: requests sent directly to the Messages REST API")
 
 
 def build_options(item, condition, rng):
