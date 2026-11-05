@@ -33,6 +33,7 @@ Output: Contamination_analysis/results/perturbation_<model>[_sampled].jsonl (one
 import argparse
 import getpass
 import importlib.util
+import inspect
 import json
 import os
 import random
@@ -74,11 +75,36 @@ def load_tester(name):
     Tester = getattr(mod, cls)
     if kind == "api":
         key = os.environ.get(env) or getpass.getpass(f"API key for {name} ({env}): ")
-        return Tester(key)
+        tester = Tester(key)
+        if name == "claude":
+            patch_anthropic(tester)
+        return tester
     if name == "medgemma":
         return Tester(device="auto")
     import torch
     return Tester(device="cuda" if torch.cuda.is_available() else "cpu")
+
+
+def patch_anthropic(tester):
+    """Recent versions of the anthropic SDK no longer accept `temperature` as a keyword of
+    messages.create(). The parameter is then sent unchanged in the request body, so that the
+    request is the same as in the main study."""
+    create = tester.client.messages.create
+    try:
+        accepts = "temperature" in inspect.signature(create).parameters
+    except (TypeError, ValueError):
+        accepts = True
+    if accepts:
+        return
+
+    def create_compat(*args, **kw):
+        extra = dict(kw.pop("extra_body", None) or {})
+        for k in ("temperature", "top_p", "top_k"):
+            if k in kw:
+                extra[k] = kw.pop(k)
+        return create(*args, extra_body=extra, **kw)
+    tester.client.messages.create = create_compat
+    print("anthropic SDK: temperature sent in the request body (extra_body)")
 
 
 def build_options(item, condition, rng):
@@ -151,7 +177,7 @@ def main():
             return generate(*args, **kw)
         tester.model.generate = sampled_generate
 
-    n = len(done)
+    n, fails = len(done), 0
     with open(out_file, "a", encoding="utf-8") as out:
         for run in range(1, a.runs + 1):
             for _, item in items.iterrows():
@@ -166,6 +192,15 @@ def main():
                         question=str(item["question"]), options=opts, correct_answer=corr,
                         year=y, run=run, question_idx=q)
                     raw = last_line(raw_file, size)
+                    failed = raw is None or str(raw.get("raw_response", "")).startswith("ERROR")
+                    if failed:
+                        fails += 1
+                        print(f"  call failed ({cond}, run {run}, {y} Q{q}): not recorded")
+                        if fails >= 5:
+                            sys.exit("Stopped after 5 consecutive failed calls: check the error above, "
+                                     "then relaunch the same command to resume.")
+                        continue
+                    fails = 0
                     rec = {"model": a.model, "decoding": a.decoding, "condition": cond, "run": run, "year": y, "question_idx": q,
                            "question_type": item["question_type"],
                            "options": dict(zip(LETTERS, opts)), "correct_letter": corr, "nota_letter": nota,

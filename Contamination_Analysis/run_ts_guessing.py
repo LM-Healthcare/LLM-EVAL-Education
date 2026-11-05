@@ -77,6 +77,7 @@ def main():
             done = {(r["year"], r["question_idx"]) for r in map(json.loads, filter(str.strip, fh))}
     os.chdir(a.outdir)
     tester = load_tester(a.model)
+    fails = 0
     with open(out_file, "a", encoding="utf-8") as out:
         for _, it in items.iterrows():
             y, q = int(it["year"]), int(it["question_idx"])
@@ -92,8 +93,14 @@ def main():
                                    options="\n".join(f"{L}: {t}" for L, t in zip(LETTERS, shown)))
             try:
                 text = chat(tester, a.model, prompt)
-            except Exception as e:                                # recorded, not fatal
-                text = f"ERROR: {e}"
+                fails = 0
+            except Exception as e:                                # not recorded: retried on relaunch
+                fails += 1
+                print(f"  call failed ({y} Q{q}): {e}")
+                if fails >= 5:
+                    sys.exit("Stopped after 5 consecutive failed calls: check the error above, "
+                             "then relaunch the same command to resume.")
+                continue
             out.write(json.dumps({"model": a.model, "year": y, "question_idx": q, "masked_letter": letter,
                                   "target": opts[masked_idx], "response": text,
                                   "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S")}, ensure_ascii=False) + "\n")
