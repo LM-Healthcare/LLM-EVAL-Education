@@ -1,0 +1,67 @@
+# Contamination_analysis — benchmark contamination probes (second revision)
+
+Two analyses added in response to Reviewer 3, Comment 1, on a common set of 150 items.
+
+## Items
+
+`items.csv` (built by `select_items.py`, seed 2026): 30 items per examination year, drawn from the
+text-only questions whose options do not already contain a "none/all of the other answers" option,
+whose stem is not negatively worded, and that are not among the seven questions with defective
+administered options (main README, *Dataset version*). The item text is that of `Dataset/`.
+
+## 1. Answer perturbation (`run_perturbation.py`)
+
+Each item is administered in three conditions, with the prompt, generation parameters and answer
+extraction of the main study (the `process_question()` method of the scripts in
+`Official_testing_code/` is called unchanged):
+
+| Condition | Options | Correct answer |
+|---|---|---|
+| `original` | the five original options | original correct option |
+| `nota_correct` | correct option replaced by *"Nessuna delle altre risposte è corretta"* | the NOTA option |
+| `nota_distractor` | one distractor replaced by the same NOTA option | original correct option |
+
+The NOTA wording is the one used in the SSM itself. Options are shuffled at every administration
+(seeded). The `original` condition re-administers the unperturbed items at the same time as the
+perturbed ones, so that the comparison is not affected by changes of the API models since February 2026.
+
+```
+python Contamination_analysis/run_perturbation.py --model gpt --runs 5
+```
+
+## 2. Option completion, TS-Guessing (`run_ts_guessing.py`, API models only)
+
+One incorrect option of each item is masked and the model is asked to reproduce its exact text
+(Deng et al., 2024). Incorrect options cannot be inferred from medical knowledge, so exact or
+near-exact reproduction indicates prior exposure to the item.
+
+```
+python Contamination_analysis/run_ts_guessing.py --model gpt
+```
+
+## 3. MedGemma under sampled decoding (Reviewer 3, Comment 5)
+
+`run_perturbation.py --model medgemma --conditions original --decoding sampled --runs 5` re-runs
+MedGemma 1.5-4B on the original items with sampling at temperature 0.1 and top-p 0.95 (as for the
+other open-weight models) instead of greedy decoding. Output: `results/perturbation_medgemma_sampled.jsonl`.
+
+## Running
+
+- From the repository root, one model at a time. Both scripts can be interrupted (Ctrl+C) and
+  relaunched with the same command: they resume where they stopped.
+- API keys are read from `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`,
+  `MISTRAL_API_KEY`, `DASHSCOPE_API_KEY`, or asked at start-up.
+- Local models (`qwen3_8b`, `medgemma`, `meditron3`, and optionally `ministral`, `qwen3_4b`,
+  `qwen3_1_7b`) need the same environment as the main study (GPU, transformers, access to the
+  gated MedGemma weights).
+- Outputs: `results/perturbation_<model>.jsonl`, `results/ts_guessing_<model>.jsonl`, plus the
+  tester's own raw file and log in `results/`.
+
+| Model | Responses (perturbation) | Indicative time |
+|---|---|---|
+| each API model, 5 runs | 2,250 | 30–60 min |
+| `ts_guessing`, each API model | 150 | 5–15 min |
+| `qwen3_8b`, 5 runs | 2,250 | ~1 h |
+| `meditron3`, 5 runs | 2,250 | ~30 min |
+| `medgemma`, 3 runs | 1,350 | ~6 h |
+| `medgemma --conditions original --decoding sampled`, 5 runs (Comment 5) | 750 | ~3 h |
