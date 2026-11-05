@@ -49,3 +49,4 @@ models/
 
 # Working folder for prepare_dataset.py and local runs
 run/
+\_before_finalize
