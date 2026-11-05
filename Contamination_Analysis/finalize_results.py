@@ -1,6 +1,7 @@
 """
 Align the result files with items.csv (run from the repository root, after all runs are complete):
     python Contamination_analysis/finalize_results.py
+    python Contamination_analysis/finalize_results.py --check     # only list what is missing; changes nothing
 
 For every file in results/ (perturbation_*.jsonl, ts_guessing_*.jsonl, tester_raw_*.jsonl) it keeps
 only the responses to the items listed in items.csv, removes duplicates (keeping the last response),
@@ -8,6 +9,7 @@ and sorts the lines (perturbation: run, year, question, condition; TS-Guessing: 
 The original files are copied first to results/_before_finalize/. It also reports, for each model,
 whether every item, condition and run is complete.
 """
+import argparse
 import glob
 import json
 import os
@@ -19,11 +21,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, "results")
 COND = {"original": 0, "nota_correct": 1, "nota_distractor": 2}
 
+ap = argparse.ArgumentParser()
+ap.add_argument("--check", action="store_true", help="list missing responses; do not modify any file")
+CHECK = ap.parse_args().check
+
 items = pd.read_csv(os.path.join(HERE, "items.csv"))
 keys = set(zip(items.year, items.question_idx))
 stems = {(int(r.year), str(r.question).strip()) for r in items.itertuples()}
 backup = os.path.join(RES, "_before_finalize")
-os.makedirs(backup, exist_ok=True)
+if not CHECK:
+    os.makedirs(backup, exist_ok=True)
 
 
 def read(path):
@@ -41,7 +48,8 @@ for path in sorted(glob.glob(os.path.join(RES, "*.jsonl"))):
     name = os.path.basename(path)
     if name.startswith("openrouter_calls"):
         continue
-    shutil.copy2(path, os.path.join(backup, name))
+    if not CHECK:
+        shutil.copy2(path, os.path.join(backup, name))
     recs = read(path)
     if name.startswith("perturbation_"):
         uniq = {(r["condition"], r["run"], r["year"], r["question_idx"]): r for r in recs
@@ -52,13 +60,20 @@ for path in sorted(glob.glob(os.path.join(RES, "*.jsonl"))):
         expected = len(keys) * len(runs) * len(conds)
         status = "complete" if len(out) == expected else f"INCOMPLETE ({len(out)} of {expected})"
         print(f"{name:<52} {len(recs):>5} -> {len(out):>5} lines; runs {runs}; {conds}; {status}")
+        have = {(r["condition"], r["run"], r["year"], r["question_idx"]) for r in out}
+        miss = sorted((c, n, y, q) for c in conds for n in runs for (y, q) in keys if (c, n, y, q) not in have)
+        for c, n, y, q in miss:
+            print(f"      missing: run {n}, {y} Q{q}, {c}")
     elif name.startswith("ts_guessing_"):
         uniq = {(r["year"], r["question_idx"]): r for r in recs if (r["year"], r["question_idx"]) in keys}
         out = sorted(uniq.values(), key=lambda r: (r["year"], r["question_idx"]))
         status = "complete" if len(out) == len(keys) else f"INCOMPLETE ({len(out)} of {len(keys)})"
         print(f"{name:<52} {len(recs):>5} -> {len(out):>5} lines; {status}")
+        for y, q in sorted(keys - {(r["year"], r["question_idx"]) for r in out}):
+            print(f"      missing: {y} Q{q}")
     else:                                    # tester_raw_*: matched on year and question text
         out = [r for r in recs if (int(r.get("year", 0)), str(r.get("question", "")).strip()) in stems]
         print(f"{name:<52} {len(recs):>5} -> {len(out):>5} lines")
-    write(path, out)
-print(f"originals copied to {backup}")
+    if not CHECK:
+        write(path, out)
+print("check only: no file was modified" if CHECK else f"originals copied to {backup}")
