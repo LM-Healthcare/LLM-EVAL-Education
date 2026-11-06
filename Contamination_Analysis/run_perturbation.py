@@ -81,7 +81,27 @@ def load_tester(name):
     if name == "medgemma":
         return Tester(device="auto")
     import torch
-    return Tester(device="cuda" if torch.cuda.is_available() else "cpu")
+    tester = Tester(device="cuda" if torch.cuda.is_available() else "cpu")
+    harmonise_dtype(tester, name, torch)
+    return tester
+
+
+# dtype requested by each original script in from_pretrained()
+REQUESTED_DTYPE = {"ministral": "float16", "qwen3_8b": "float16", "qwen3_4b": "float16",
+                   "qwen3_1_7b": "float16", "meditron3": "bfloat16"}
+
+
+def harmonise_dtype(tester, name, torch):
+    """Recent transformers versions may leave part of a checkpoint in its stored dtype even when
+    another dtype is requested (e.g. Ministral 3: bfloat16 layers in a float16 model), which makes
+    generation fail. The whole model is then cast to the dtype requested by the original script."""
+    want = getattr(torch, REQUESTED_DTYPE.get(name, ""), None)
+    if want is None:
+        return
+    found = {p.dtype for p in tester.model.parameters() if p.is_floating_point()}
+    if found and found != {want}:
+        tester.model = tester.model.to(want)
+        print(f"{name}: parameters in {sorted(map(str, found))}, cast to {want} as requested by the original script")
 
 
 def patch_anthropic(tester, api_key):
