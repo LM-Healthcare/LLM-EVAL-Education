@@ -6,10 +6,10 @@ pieces of text that cannot be inferred from medical knowledge, so reproducing th
 almost exactly indicates prior exposure to the item.
 
 Usage, from the repository root (API models only; one model at a time; resumable):
-    python Contamination_analysis/run_ts_guessing.py --model gpt
+    python Contamination_Analysis/run_ts_guessing.py --model gpt
 
 The API clients and endpoints are those of the scripts in Official_testing_code/Closed/.
-Output: Contamination_analysis/results/ts_guessing_<model>.jsonl
+Output: Contamination_Analysis/results/ts_guessing_<model>.jsonl
 """
 import argparse
 import json
@@ -65,9 +65,9 @@ def chat(tester, name, prompt):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, choices=[m for m, v in MODELS.items() if v[2] == "api"])
-    ap.add_argument("--items", default=os.path.join(ROOT, "Contamination_analysis", "items.csv"))
+    ap.add_argument("--items", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "items.csv"))
     ap.add_argument("--model-id", default=None, help="query this model identifier instead of the script's one")
-    ap.add_argument("--outdir", default=os.path.join(ROOT, "Contamination_analysis", "results"))
+    ap.add_argument("--outdir", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
     a = ap.parse_args()
     items = pd.read_csv(a.items)
     os.makedirs(a.outdir, exist_ok=True)

@@ -2,7 +2,7 @@
 Check which Qwen3-Max versions are still served by Alibaba Model Studio (DashScope) with your key.
 The alias `qwen3-max` used in the main study (February 2026) is no longer served; dated snapshots
 may still be. Usage, from the repository root:
-    python Contamination_analysis/check_qwen_snapshots.py
+    python Contamination_Analysis/check_qwen_snapshots.py
 API key: DASHSCOPE_API_KEY, or asked at start-up.
 """
 import getpass

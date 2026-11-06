@@ -14,9 +14,9 @@ the scripts in Official_testing_code/Closed/: the tester class of each model is 
 only the endpoint, model identifier and API key differ.
 
 Usage, from the repository root:
-    python Contamination_analysis/run_openrouter.py --check                      # one test call per model
-    python Contamination_analysis/run_openrouter.py --model mistral --task perturbation --runs 5
-    python Contamination_analysis/run_openrouter.py --model mistral --task ts_guessing
+    python Contamination_Analysis/run_openrouter.py --check                      # one test call per model
+    python Contamination_Analysis/run_openrouter.py --model mistral --task perturbation --runs 5
+    python Contamination_Analysis/run_openrouter.py --model mistral --task ts_guessing
 
 API key: environment variable OPENROUTER_API_KEY, or asked at start-up.
 Outputs (results/): perturbation_<model>_openrouter.jsonl, ts_guessing_<model>_openrouter.jsonl

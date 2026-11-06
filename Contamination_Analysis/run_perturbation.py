@@ -17,9 +17,9 @@ from the content of the question should keep its accuracy when the correct optio
 by NOTA; a model that relies on recognising a memorised answer among the options should not.
 
 Usage, from the repository root (one model at a time; the run can be interrupted and resumed):
-    python Contamination_analysis/run_perturbation.py --model gpt --runs 5
-    python Contamination_analysis/run_perturbation.py --model medgemma --runs 3
-    python Contamination_analysis/run_perturbation.py --model medgemma --runs 5 \
+    python Contamination_Analysis/run_perturbation.py --model gpt --runs 5
+    python Contamination_Analysis/run_perturbation.py --model medgemma --runs 3
+    python Contamination_Analysis/run_perturbation.py --model medgemma --runs 5 \
         --conditions original --decoding sampled          # Reviewer 3, Comment 5
 
 Models: claude, deepseek, gpt, grok, mistral, qwen (API key from the environment variable
@@ -28,7 +28,7 @@ qwen3_1_7b (local, Hugging Face Transformers, GPU).
 --decoding sampled (local models only) replaces greedy decoding in the primary generation with
 sampling at temperature 0.1, top-p 0.95, as for the other open-weight models; everything else is
 unchanged. It is meant for MedGemma, the only model run with greedy decoding.
-Output: Contamination_analysis/results/perturbation_<model>[_sampled].jsonl (one line per response).
+Output: Contamination_Analysis/results/perturbation_<model>[_sampled].jsonl (one line per response).
 """
 import argparse
 import getpass
@@ -148,13 +148,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, choices=sorted(MODELS))
     ap.add_argument("--runs", type=int, default=5)
-    ap.add_argument("--items", default=os.path.join(ROOT, "Contamination_analysis", "items.csv"))
+    ap.add_argument("--items", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "items.csv"))
     ap.add_argument("--model-id", default=None,
                     help="API models only: query this model identifier instead of the script's one "
                          "(e.g. a dated snapshot of a retired alias); recorded in every output line")
     ap.add_argument("--conditions", nargs="+", default=CONDITIONS, choices=CONDITIONS)
     ap.add_argument("--decoding", default="default", choices=["default", "sampled"])
-    ap.add_argument("--outdir", default=os.path.join(ROOT, "Contamination_analysis", "results"))
+    ap.add_argument("--outdir", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
     a = ap.parse_args()
 
     items = pd.read_csv(a.items)

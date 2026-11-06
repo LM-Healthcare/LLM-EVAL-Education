@@ -1,7 +1,7 @@
 """
 Align the result files with items.csv (run from the repository root, after all runs are complete):
-    python Contamination_analysis/finalize_results.py
-    python Contamination_analysis/finalize_results.py --check     # only list what is missing; changes nothing
+    python Contamination_Analysis/finalize_results.py
+    python Contamination_Analysis/finalize_results.py --check     # only list what is missing; changes nothing
 
 For every file in results/ (perturbation_*.jsonl, ts_guessing_*.jsonl, tester_raw_*.jsonl) it keeps
 only the responses to the items listed in items.csv, removes duplicates (keeping the last response),

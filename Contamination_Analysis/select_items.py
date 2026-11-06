@@ -1,6 +1,6 @@
 """
 Select the items used in the contamination analyses (run from the repository root):
-    python Contamination_analysis/select_items.py
+    python Contamination_Analysis/select_items.py
 
 Eligible items: text-only questions (Image = No) whose options do not already contain a
 "none/all of the other answers" option, whose stem is not negatively worded (the question asks
@@ -14,7 +14,7 @@ eligible items (seed "2026-replacement"). For each item the script also fixes, a
   - nota_distractor: which distractor (B-E) is replaced by the NOTA option in the
     "NOTA as distractor" control condition;
   - ts_mask: which distractor (B-E) is masked in the option-completion (TS-Guessing) probe.
-Output: Contamination_analysis/items.csv (sorted by year and question).
+Output: Contamination_Analysis/items.csv (sorted by year and question).
 """
 import random
 import re
@@ -64,5 +64,5 @@ for y in range(2020, 2025):
     rows += sorted(keep, key=lambda x: x["question_idx"])
     print(y, "replaced", n_replaced)
 out = pd.DataFrame(rows)
-out.to_csv("Contamination_analysis/items.csv", index=False)
-print("written Contamination_analysis/items.csv:", len(out), "items;", out.question_type.value_counts().to_dict())
+out.to_csv("Contamination_Analysis/items.csv", index=False)
+print("written Contamination_Analysis/items.csv:", len(out), "items;", out.question_type.value_counts().to_dict())

@@ -1,4 +1,4 @@
-# Contamination_analysis — benchmark contamination probes (second revision)
+# Contamination_Analysis — benchmark contamination probes (second revision)
 
 Two analyses added in response to Reviewer 3, Comment 1, on a common set of 150 items.
 
@@ -30,7 +30,7 @@ The NOTA wording is the one used in the SSM itself. Options are shuffled at ever
 perturbed ones, so that the comparison is not affected by changes of the API models since February 2026.
 
 ```
-python Contamination_analysis/run_perturbation.py --model gpt --runs 5
+python Contamination_Analysis/run_perturbation.py --model gpt --runs 5
 ```
 
 ## 2. Option completion, TS-Guessing (`run_ts_guessing.py`, API models only)
@@ -40,7 +40,7 @@ One incorrect option of each item is masked and the model is asked to reproduce 
 near-exact reproduction indicates prior exposure to the item.
 
 ```
-python Contamination_analysis/run_ts_guessing.py --model gpt
+python Contamination_Analysis/run_ts_guessing.py --model gpt
 ```
 
 ## Models no longer available through their original API (`run_openrouter.py`)
@@ -60,9 +60,9 @@ OpenRouter, reusing the original tester classes unchanged except for endpoint, m
 The model and provider that served each call are recorded in `results/openrouter_calls.jsonl`.
 
 ```
-python Contamination_analysis/run_openrouter.py --check
-python Contamination_analysis/run_openrouter.py --model mistral --task perturbation --runs 5
-python Contamination_analysis/run_openrouter.py --model mistral --task ts_guessing
+python Contamination_Analysis/run_openrouter.py --check
+python Contamination_Analysis/run_openrouter.py --model mistral --task perturbation --runs 5
+python Contamination_Analysis/run_openrouter.py --model mistral --task ts_guessing
 ```
 
 The Mistral and Qwen testers pause 3–4 s and 1–1.5 s between calls (as in the main study), so 2,250
@@ -73,6 +73,21 @@ responses take about 2.5 h and 1 h.
 `run_perturbation.py --model medgemma --conditions original --decoding sampled --runs 5` re-runs
 MedGemma 1.5-4B on the original items with sampling at temperature 0.1 and top-p 0.95 (as for the
 other open-weight models) instead of greedy decoding. Output: `results/perturbation_medgemma_sampled.jsonl`.
+
+## Analysis (`analyze_contamination.py`)
+
+```
+python Contamination_Analysis/analyze_contamination.py
+```
+
+Writes to `analysis/`: `perturbation_summary.csv` (accuracy on the 150 items in the main study and in
+the three conditions, differences with 95% CIs from an item bootstrap), `perturbation_by_type.csv`,
+`ts_guessing_summary.csv` (exact and near-exact reproduction of the masked option, overall and for options
+not derivable from the visible ones; accuracy on reproduced vs other items) and, when available,
+`sampled_decoding.csv` (MedGemma, greedy vs sampled decoding).
+
+`check_qwen_snapshots.py` documents that Qwen3-Max (`qwen3-max` and its dated snapshots) was no longer
+served by Alibaba Model Studio at the time of the revision; Qwen3-Max is therefore not included.
 
 ## Running
 
