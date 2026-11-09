@@ -184,7 +184,7 @@ The letter stored in the raw output files coincides with the final dataset (`Con
 
 ## Statistical analysis
 
-`Analysis/repeated_runs_statistics.R` reproduces the between-model tests of the paper (Kruskal-Wallis and Dunn post-hoc tests with Holm correction, Table 4), the effect sizes reported in Tables 4 and 5, and Supplementary Table S10. Run it from the repository root (R packages: dplyr, tidyr, rstatix, readxl):
+`Analysis/repeated_runs_statistics.R` reproduces the between-model tests of the paper (Kruskal-Wallis and Dunn post-hoc tests with Holm correction, Table 4), the effect sizes reported in Table 4, and Supplementary Table S10. Run it from the repository root (R packages: dplyr, tidyr, rstatix, readxl):
 
 ```
 Rscript Analysis/repeated_runs_statistics.R
@@ -195,6 +195,14 @@ Inputs: `Candidate_analysis/data/llm_runs_long.csv` and `Results/*/Consistency/c
 Unit of analysis: in the Kruskal-Wallis and Dunn tests, one run of one model on one examination year (140 questions); the 250 runs of each model are pooled for the comparisons between models. Because the runs of a model share the same questions, each pairwise difference is also estimated with the question as the unit of analysis (paired percentile bootstrap over the 700 questions, 4,000 resamples, seed 2026).
 
 Outputs in `Analysis/statistics_output/`: `kruskal_wallis_effect_sizes.csv` (H, df, p, Bonferroni-adjusted p, η²H), `pairwise_comparisons.csv` (difference in mean accuracy with item-level 95% CI, Cliff's δ, Holm-adjusted Dunn p), `quantization_vs_full_precision.csv` and `llm_item_accuracy.csv` (accuracy of each model on each question).
+
+**Forced-response sensitivity analysis.** `Analysis/abstention_sensitivity.py` recomputes each model's mean SSM score and its percentile rank among the candidates under two abstention conditions (Supplementary Table S13): (i) the model abstains (0 points) on the questions whose most frequent answer was given in fewer than half of the 50 runs (thresholds of 40% and 60% are also reported); (ii) the model abstains on every question answered correctly in fewer than 20% of the runs, the item-level strategy that maximizes the expected score and therefore bounds the cost of forced response. Run it from the repository root after `git lfs pull` (Python: pandas, NumPy):
+
+```
+python Analysis/abstention_sensitivity.py
+```
+
+Outputs in `Analysis/statistics_output/`: `abstention_sensitivity.csv` (one row per model, year and condition: questions abstained, mean score, percentile rank with 95% item-bootstrap CI, change from forced response) and `abstention_sensitivity_summary.csv` (one row per model and condition).
 
 ## Human reference data
 
