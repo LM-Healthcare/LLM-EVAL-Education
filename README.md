@@ -190,11 +190,11 @@ The letter stored in the raw output files coincides with the final dataset (`Con
 Rscript Analysis/repeated_runs_statistics.R
 ```
 
-Inputs: `Candidate_analysis/data/llm_runs_long.csv`, `Candidate_analysis/data/candidate_scores_2020_2024.csv` and `Results/*/Consistency/consistency_*.xlsx`.
+Inputs: `Candidate_analysis/data/llm_runs_long.csv` and `Results/*/Consistency/consistency_*.xlsx`.
 
-Unit of analysis: in the Kruskal-Wallis, Dunn and Mann-Whitney tests, one run of one model on one examination year (140 questions); the 250 runs of each model are pooled for the comparisons between models, and the 50 runs of each year are compared with all candidates of that year. Because the runs of a model share the same questions, each pairwise difference is also estimated with the question as the unit of analysis (paired percentile bootstrap over the 700 questions, 4,000 resamples, seed 2026).
+Unit of analysis: in the Kruskal-Wallis and Dunn tests, one run of one model on one examination year (140 questions); the 250 runs of each model are pooled for the comparisons between models. Because the runs of a model share the same questions, each pairwise difference is also estimated with the question as the unit of analysis (paired percentile bootstrap over the 700 questions, 4,000 resamples, seed 2026).
 
-Outputs in `Analysis/statistics_output/`: `kruskal_wallis_effect_sizes.csv` (H, df, p, Bonferroni-adjusted p, η²H), `pairwise_comparisons.csv` (difference in mean accuracy with item-level 95% CI, Cliff's δ, Holm-adjusted Dunn p), `quantization_vs_full_precision.csv`, `mann_whitney_effect_sizes.csv` (probability of superiority A for each model and year) and `llm_item_accuracy.csv` (accuracy of each model on each question).
+Outputs in `Analysis/statistics_output/`: `kruskal_wallis_effect_sizes.csv` (H, df, p, Bonferroni-adjusted p, η²H), `pairwise_comparisons.csv` (difference in mean accuracy with item-level 95% CI, Cliff's δ, Holm-adjusted Dunn p), `quantization_vs_full_precision.csv` and `llm_item_accuracy.csv` (accuracy of each model on each question).
 
 ## Human reference data
 
