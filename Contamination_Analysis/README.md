@@ -95,11 +95,11 @@ served by Alibaba Model Studio at the time of the revision; Qwen3-Max is therefo
   relaunched with the same command: they resume where they stopped.
 - API keys are read from `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`,
   `MISTRAL_API_KEY`, `DASHSCOPE_API_KEY`, or asked at start-up.
-- Local models (`qwen3_8b`, `medgemma`, `meditron3`, and optionally `ministral`, `qwen3_4b`,
-  `qwen3_1_7b`) need the same environment as the main study (GPU, transformers, access to the
-  gated MedGemma weights).
+- Local models (`qwen3_8b`, `medgemma`, `meditron3`, `ministral`, `qwen3_4b`, `qwen3_1_7b`) need
+  the same environment as the main study (GPU, transformers, access to the gated MedGemma weights).
 - Outputs: `results/perturbation_<model>.jsonl`, `results/ts_guessing_<model>.jsonl`, plus the
-  tester's own raw file and log in `results/`.
+  tester's own raw file and log in `results/` (the files of the API models are archived in
+  `results/Closed/`; the analysis scripts search both folders).
 
 | Model | Responses (perturbation) | Indicative time |
 |---|---|---|

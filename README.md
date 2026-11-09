@@ -8,7 +8,7 @@ This repository contains the code, dataset, and complete evaluation outputs used
 
 ```
 .
-├── Analysis/                     # Analyses added during peer review (see sections below)
+├── Analysis/                     # Additional analyses (see sections below)
 │   ├── audit_extraction.py       # Answer extraction audit (630,000 responses)
 │   ├── audit_output/             # Outputs of the audit
 │   ├── check_final_dataset_vs_raw.py      # Final dataset vs raw outputs, cell by cell
@@ -19,13 +19,23 @@ This repository contains the code, dataset, and complete evaluation outputs used
 │   ├── itemtype_results_by_model.csv
 │   ├── itemtype_results_by_group.csv
 │   ├── repeated_runs_statistics.R         # Between-model tests, effect sizes, item-level CIs
-│   └── statistics_output/                 # Outputs of repeated_runs_statistics.R
+│   ├── abstention_sensitivity.py          # Forced-response sensitivity analysis (Supplementary Table S13)
+│   ├── image_items_sensitivity.py         # Image-dependent questions (Supplementary Table S14)
+│   ├── retry_statistics.py                # Retry prompt and reasoning blocks
+│   └── statistics_output/                 # Outputs of the statistical and sensitivity analyses
 │
 ├── Candidate_analysis/           # Human reference data and human-referenced analysis (see its own README)
 │   ├── data/                     # Anonymised candidate scores; one row per model × year × run
 │   ├── outputs/                  # Tables 2, 3 and 5, Supplementary Tables S8–S9, Figures 1–4
 │   ├── scripts/                  # Extraction of the rankings and analysis (R)
 │   └── README.md
+│
+├── Contamination_Analysis/       # Preliminary contamination analyses (see its own README)
+│   ├── items.csv                 # The 150 items and their perturbations
+│   ├── run_perturbation.py, run_ts_guessing.py, run_openrouter.py, select_items.py
+│   ├── analyze_contamination.py, finalize_results.py, check_qwen_snapshots.py
+│   ├── results/                  # Raw outputs (Git LFS); API models in results/Closed/
+│   └── analysis/                 # Supplementary Tables S11–S12 and sampled run of MedGemma
 │
 ├── Dataset/                      # Exam questions (2020–2024)
 │   ├── 2020_SSM_[checked].xlsx
@@ -178,7 +188,9 @@ The script reads the `Question type` and `Image` columns of the dataset and the 
 python Analysis/audit_extraction.py
 ```
 
-For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the raw output file after manual resolution (`extracted_letter`); and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually resolved responses.
+For each response it compares (i) the letter produced by the original extraction function of the corresponding script in `Official_testing_code/`, re-executed on the archived raw output; (ii) the letter stored in the raw output file after manual resolution (`extracted_letter`); and (iii) the letter obtained with a conservative re-extraction that accepts only an explicitly stated answer or the text of a single option. Outputs in `Analysis/audit_output/`: `summary_by_model.csv` (counts and accuracies per model), `audit_items.csv` (every response for which the three letters differ, with the beginning and end of the model output), `gpt_check_items.csv` (the re-administered GPT 5.2 responses, see below), and `log_check_by_model.csv` (per-run accuracy recomputed from the raw outputs compared with the accuracy printed in the execution logs). `Analysis/manual_resolution_review_R2.xlsx` contains the independent second review of all manually reviewed responses.
+
+For MedGemma 1.5-4B, its quantized variants and Ministral-3B, the responses with `runtime_letter` = `ND` (326 in total) are responses answered through the retry prompt: their stored output ends with `[RETRY]` followed by the retry answer, from which the letter was obtained at run time, whereas the original extraction function, applied to the whole stored output, does not recover it. They are included in the manual review together with the 21 manually resolved responses of Claude 4.5 Sonnet (20) and Qwen3-8B (1).
 
 The letter stored in the raw output files coincides with the final dataset (`Consistency/` files) except for 89 of the 630,000 responses, listed by `Analysis/check_final_dataset_vs_raw.py` in `Analysis/audit_output/final_dataset_vs_raw.csv`: 77 concern 2023 Q134 in Ministral-3B and Qwen3-8B (see *Dataset version*), 11 are isolated responses of GPT 5.2 (2), MedGemma 1.5-4B (1), Meditron3-8B (1), MedGemma 1.5-4B-Q4_K_M (5) and MedGemma 1.5-4B-Q8_0 (2), and one Grok 4.1 response (2021, run 5, Q13) is missing from the raw file. For this reason the accuracies in `summary_by_model.csv` (`stored_accuracy_%`) differ from those computed from the final dataset by at most 0.11 percentage points.
 
@@ -211,6 +223,18 @@ python Analysis/image_items_sensitivity.py
 ```
 
 Outputs in `Analysis/statistics_output/`: `image_items_accuracy.csv` and `image_items_sensitivity.csv`.
+
+**Retry and reasoning blocks.** `Analysis/retry_statistics.py` counts, for every model, the responses obtained with the retry prompt (`[RETRY]` in the raw output) and the responses of the Qwen3 and Meditron3 models containing a non-empty reasoning block, and reports each model's accuracy with the retry responses scored as incorrect. Run it from the repository root after `git lfs pull`:
+
+```
+python Analysis/retry_statistics.py
+```
+
+Output: `Analysis/statistics_output/retry_statistics.csv`. 326 of the 328 retry responses are the responses with `runtime_letter` = `ND` in the answer extraction audit (see above).
+
+## Contamination analyses
+
+`Contamination_Analysis/` contains the two preliminary contamination analyses on a common set of 150 items (answer perturbation with a "None of the other answers" option, Supplementary Table S11; option completion, TS-Guessing, Supplementary Table S12) and the run of MedGemma 1.5-4B under sampled decoding. Items, scripts, raw outputs (Git LFS) and results are described in `Contamination_Analysis/README.md`.
 
 ## Human reference data
 
