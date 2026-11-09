@@ -6,7 +6,6 @@
 #
 # Inputs
 #   Candidate_analysis/data/llm_runs_long.csv          one row per model x year x run
-#   Candidate_analysis/data/candidate_scores_2020_2024.csv
 #   Results/*/Consistency/consistency_*.xlsx           per-question outcome of every run
 #                                                      (used to compute item-level accuracy)
 # Outputs (Analysis/statistics_output/)
@@ -16,14 +15,12 @@
 #                                        difference in accuracy with 95% item-bootstrap CI
 #   quantization_vs_full_precision.csv   RQ4: each quantized variant vs its full-precision model
 #                                        (descriptive: difference, 95% item-bootstrap CI, Cliff's delta)
-#   mann_whitney_effect_sizes.csv        Table 5 extension: probability of superiority (A) and
-#                                        rank-biserial correlation for each model vs candidates
 #
 # Units of analysis
-#   Kruskal-Wallis, Dunn, Mann-Whitney: one complete run of a model on one examination year
-#     (accuracy or SSM score of 140 questions); 250 runs per model pooled over 2020-2024 for
-#     the between-model comparisons, 50 runs per model and year for the comparison with the
-#     candidates (one observation per candidate).
+#   Kruskal-Wallis, Dunn: one complete run of a model on one examination year (accuracy of
+#     140 questions); 250 runs per model pooled over 2020-2024. The comparison with the
+#     candidates is in Candidate_analysis/scripts/candidate_analysis.R (percentile ranks with
+#     item-bootstrap confidence intervals, no hypothesis tests).
 #   Item-bootstrap sensitivity analysis: the question (700 questions), resampled with
 #     replacement and paired across models, so that the confidence interval reflects the
 #     uncertainty due to the particular set of questions rather than run-to-run variability.
@@ -51,7 +48,6 @@ items <- bind_rows(lapply(files, function(f) {
     group_by(year, question) %>% summarise(item_accuracy = mean(correct), .groups = "drop") %>% mutate(model = m)
 }))
 write.csv(items %>% select(model, year, question, item_accuracy), file.path(out_dir, "llm_item_accuracy.csv"), row.names = FALSE)
-cand  <- read.csv("Candidate_analysis/data/candidate_scores_2020_2024.csv")
 
 groups <- list(Proprietary = c("CLA", "DPSK", "GPT", "GROK", "MSTRL", "QWEN"),
                `Open-source` = c("MG4B", "MT8B", "mSTRL3B", "Q1_7B", "Q4B", "Q8B"),
@@ -107,17 +103,6 @@ qrows <- lapply(seq_len(nrow(qv)), function(i) {
 qtab <- do.call(rbind, qrows); rownames(qtab) <- NULL
 write.csv(qtab, file.path(out_dir, "quantization_vs_full_precision.csv"), row.names = FALSE)
 
-# Mann-Whitney vs candidates: effect sizes for Table 5
-mw_rows <- list()
-for (yr in 2020:2024) {
-  cs <- cand$test_score[cand$year == yr]
-  for (m in unlist(groups)) {
-    s <- runs$score[runs$model == m & runs$year == yr]
-    A <- prob_sup(s, cs)
-    mw_rows[[length(mw_rows) + 1]] <- data.frame(Year = yr, Model = m, A = A, r_rank_biserial = 2 * A - 1)
-  }
-}
-write.csv(do.call(rbind, mw_rows), file.path(out_dir, "mann_whitney_effect_sizes.csv"), row.names = FALSE)
 
 print(kw_tab, digits = 4)
 print(qtab, digits = 3)

@@ -9,10 +9,12 @@
 #                                   total_score, test_score, titles_score
 #   llm_runs_long.csv               one row per model x year x run (correct answers,
 #                                   accuracy, SSM score), built from Results/*/Consistency
+#   ../Analysis/statistics_output/llm_item_accuracy.csv   accuracy of each question over the
+#                                   50 runs of each model (item bootstrap)
 # Outputs (outputs/):
 #   candidate_descriptives.csv/.xlsx     N, mean, SD, min, Q1, median, Q3, max, P90, P95, P99
-#   model_percentiles.csv                percentile rank of each model's median score
-#   mann_whitney_LLM_vs_candidates.csv/.xlsx   Table 5 (Mann-Whitney U, Holm per year)
+#   model_percentiles.csv/.xlsx          Table 5 and Supplementary Table S9: mean score and
+#                                        percentile rank of each model, with 95% CIs (item bootstrap)
 #   table_descriptive.csv                Tables 2-3 (median [IQR] score and accuracy)
 #   Figure1_boxplot_accuracy_collapsed.png, Figure2_boxplot_accuracy_by_year.png,
 #   Figure3_boxplot_score_by_year.png,  Figure4_percentile_distribution.png
@@ -23,7 +25,8 @@
 #                      is the quantity comparable with the models' SSM score.
 #   Quantiles        = R default (type 7, linear interpolation).
 #   Percentile rank of a model in a given year = percentage of candidates whose test
-#                      score is lower than or equal to the model's median score (50 runs).
+#                      score is lower than or equal to the model's mean score (50 runs);
+#                      95% CI by percentile bootstrap over the 140 questions (B = 4000).
 #   Model SSM score  = correct - 0.25 * incorrect (forced response: no blank answers).
 # =============================================================================
 
@@ -71,41 +74,42 @@ print(desc %>% mutate(across(where(is.double), ~ round(.x, 2))), width = 200)
 real_stats <- desc %>% transmute(year, median_score = median, q1_score = q1, q3_score = q3)
 
 # =============================================================================
-# 2. Percentile rank of each model's median score
+# 2. Percentile rank of each model's mean score, with 95% CI from an item bootstrap
+#    (Table 5 and Supplementary Table S9). The 50 runs of a model share the same 140
+#    questions, so the uncertainty of interest is that due to the choice of questions:
+#    the questions of each year are resampled with replacement and, in each resample,
+#    the model's mean score is recomputed from its item accuracy over the 50 runs and
+#    located in the candidate distribution of that year. Descriptive, no hypothesis tests.
 # =============================================================================
-model_medians <- df %>% group_by(year, model, category) %>%
-  summarise(median_score = median(score), .groups = "drop")
-model_medians$percentile <- mapply(function(yr, ms)
-  100 * mean(df_real$score[df_real$year == yr] <= ms), model_medians$year, model_medians$median_score)
-write.csv(model_medians %>% mutate(percentile = round(percentile, 1)),
-          "outputs/model_percentiles.csv", row.names = FALSE)
-
-# =============================================================================
-# 3. Mann-Whitney U tests (Table 5): 50 runs of each model vs all candidates,
-#    two-sided, normal approximation, Holm correction across the 18 models per year
-# =============================================================================
-sig_label <- function(p) ifelse(is.na(p), NA, ifelse(p < .001, "***", ifelse(p < .01, "**", ifelse(p < .05, "*", "ns"))))
-mw_rows <- list(); holm_pvals <- list()
+items <- read.csv("../Analysis/statistics_output/llm_item_accuracy.csv")
+B <- 4000; set.seed(2026)
+pr_rows <- list()
 for (yr in years) {
-  real_sc <- df_real$score[df_real$year == yr]; real_med <- median(real_sc)
-  res <- lapply(model_levels, function(mdl) {
-    llm_sc <- df$score[df$model == mdl & df$year == yr]
-    wt <- wilcox.test(llm_sc, real_sc, exact = FALSE)
-    data.frame(Year = yr, Category = cat_map[mdl], Model = mdl, N_LLM = length(llm_sc),
-               N_Candidates = length(real_sc), Median_LLM = median(llm_sc), Median_Candidates = real_med,
-               W = unname(wt$statistic), p_value = wt$p.value, stringsAsFactors = FALSE)
-  })
-  res <- do.call(rbind, res)
-  res$p_adj_Holm <- p.adjust(res$p_value, method = "holm")
-  res$Direction  <- ifelse(res$Median_LLM > real_med, "LLM > Candidates",
-                           ifelse(res$Median_LLM < real_med, "LLM < Candidates", "LLM = Candidates"))
-  res$Sig_adj    <- sig_label(res$p_adj_Holm)
-  holm_pvals[[as.character(yr)]] <- as.list(setNames(res$p_adj_Holm, res$Model))
-  mw_rows[[length(mw_rows) + 1]] <- res
+  cand_sorted <- sort(df_real$score[df_real$year == yr]); n_c <- length(cand_sorted)
+  prank <- function(s) 100 * findInterval(s, cand_sorted) / n_c      # % of candidates with score <= s
+  it_y <- items %>% filter(year == yr) %>% arrange(question)
+  nq <- length(unique(it_y$question))
+  idx <- matrix(sample.int(nq, nq * B, replace = TRUE), nrow = B)     # same resamples for all models
+  for (mdl in model_levels) {
+    acc <- it_y$item_accuracy[it_y$model == mdl]
+    stopifnot(length(acc) == nq)
+    sc <- 1.25 * acc - 0.25                                          # expected item score: +1 correct, -0.25 incorrect
+    est <- sum(sc); boot <- rowSums(matrix(sc[idx], nrow = B))
+    pb <- prank(boot)
+    pr_rows[[length(pr_rows) + 1]] <- data.frame(
+      year = yr, model = mdl, category = cat_map[[mdl]],
+      mean_score = est, score_ci_low = unname(quantile(boot, .025)), score_ci_high = unname(quantile(boot, .975)),
+      median_score = median(df$score[df$model == mdl & df$year == yr]),
+      percentile = prank(est), pct_ci_low = unname(quantile(pb, .025)), pct_ci_high = unname(quantile(pb, .975)),
+      stringsAsFactors = FALSE)
+  }
 }
-mw <- do.call(rbind, mw_rows); rownames(mw) <- NULL
-write.csv(mw, "outputs/mann_whitney_LLM_vs_candidates.csv", row.names = FALSE)
-write.xlsx(mw, "outputs/mann_whitney_LLM_vs_candidates.xlsx")
+model_pr <- do.call(rbind, pr_rows)
+model_pr$category <- factor(model_pr$category, levels = c("Closed", "Open", "Quantized"))
+out_pr <- model_pr %>% mutate(across(c(mean_score, score_ci_low, score_ci_high), ~ round(.x, 2)),
+                              across(c(percentile, pct_ci_low, pct_ci_high), ~ round(.x, 1)))
+write.csv(out_pr, "outputs/model_percentiles.csv", row.names = FALSE)
+write.xlsx(out_pr, "outputs/model_percentiles.xlsx")
 
 # =============================================================================
 # 4. Tables 2-3: median [IQR] of score and accuracy per model and year
@@ -211,7 +215,7 @@ ggsave("outputs/Figure2_boxplot_accuracy_by_year.png",
        wrap_plots(panels, ncol = 5, byrow = TRUE, widths = c(1, .01, 1, .01, 1)) + grid_theme,
        width = 9, height = 10.5, units = "in", dpi = 600, bg = "white")
 
-# Figure 3: score by year, candidates median (dashed line) and IQR (band), Holm-adjusted stars
+# Figure 3: score by year, candidates median (dashed line) and IQR (band)
 scale_sc <- scale_y_continuous(limits = c(-5, 150), breaks = seq(0, 140, 20))
 panels <- list()
 for (i in seq_along(years)) {
@@ -220,7 +224,7 @@ for (i in seq_along(years)) {
   for (j in seq_along(categories)) {
     p <- make_panel(df %>% filter(category == categories[j], year == yr), "score", categories[j], yr,
                     col_positions[j], row_pos, hline_val = st$median_score, iqr_low = st$q1_score,
-                    iqr_high = st$q3_score, holm_pvals_yr = holm_pvals[[as.character(yr)]], star_y = 148) + scale_sc
+                    iqr_high = st$q3_score) + scale_sc
     panels <- c(panels, list(p), list(plot_spacer()))
   }
   panels <- c(panels, list(make_real_panel(df_real %>% filter(year == yr), row_pos) + scale_sc))
@@ -229,7 +233,7 @@ ggsave("outputs/Figure3_boxplot_score_by_year.png",
        wrap_plots(panels, ncol = 7, byrow = TRUE, widths = c(1, .01, 1, .01, 1, .01, .6)) + grid_theme,
        width = 9, height = 10, units = "in", dpi = 600, bg = "white")
 
-# Figure 4: candidate score histograms with model positions (median score of the 50 runs)
+# Figure 4: candidate score histograms with model positions (mean score of the 50 runs)
 model_numbers <- setNames(seq_along(model_levels), model_levels)
 darken_color <- function(hex, factor = 0.6) { v <- col2rgb(hex) / 255 * factor; rgb(v[1], v[2], v[3]) }
 segment_color <- function(cats) { u <- unique(cats); if (length(u) == 1) darken_color(cat_colors[u], 0.65) else "grey50" }
@@ -254,17 +258,17 @@ theme_perc <- theme_bw() + theme(
   axis.text = element_text(size = 9), axis.title = element_text(size = 11, face = "bold"))
 make_year_plot <- function(yr) {
   cand_y <- df_real %>% filter(year == yr)
-  mods <- model_medians %>% filter(year == yr) %>% arrange(median_score)
+  mods <- model_pr %>% filter(year == yr) %>% arrange(mean_score)
   p <- ggplot(cand_y, aes(x = score)) +
     geom_histogram(fill = "grey80", color = "grey70", alpha = 0.3, binwidth = 2, boundary = 0) +
     geom_vline(xintercept = median(cand_y$score), color = "#E60000", linewidth = 0.6) +
     labs(x = NULL, y = as.character(yr)) + theme_perc +
     scale_x_continuous(limits = c(-6, 142), breaks = seq(0, 140, 10), expand = c(0, 0)) +
     scale_y_continuous(limits = c(0, 1300), breaks = seq(0, 1200, 200))
-  mods$group_id <- cumsum(c(TRUE, diff(mods$median_score) >= 0.2))
+  mods$group_id <- cumsum(c(TRUE, diff(mods$mean_score) >= 0.2))
   groups <- lapply(unique(mods$group_id), function(g) {
     sub <- mods[mods$group_id == g, ]
-    list(x_pos = mean(sub$median_score), seg_col = segment_color(as.character(sub$category)),
+    list(x_pos = mean(sub$mean_score), seg_col = segment_color(as.character(sub$category)),
          lbl = richtext_label(sub$model))
   })
   y_nums <- assign_y_levels(sapply(groups, `[[`, "x_pos"))

@@ -27,8 +27,7 @@ sources (2020: specializzazionemedicina.com; 2023: blog.edises.it).
 ¹ The archived 2022 ranking lacks positions 401–500 (100 candidates, all with total scores between
 117.0 and 118.5, i.e. well above the third quartile). Including them at any possible value changes the
 2022 median from 80.5 to 80.75 and the third quartile from 93.25 to 93.5, leaves the first quartile
-unchanged, changes model percentile ranks by at most 0.6 points and changes one significance level in
-Table 5 (Meditron3-8B, 2022: p < 0.001 → p < 0.01).
+unchanged and changes model percentile ranks by at most 0.6 points.
 
 ## Score used
 
@@ -49,11 +48,10 @@ Candidate_analysis/
 │   ├── build_llm_runs_long.py           builds data/llm_runs_long.csv from the Consistency files
 │   ├── extract_rankings.py              builds data/candidate_scores_2020_2024.csv from the original
 │   │                                    rankings (requires the original files, not distributed)
-│   └── candidate_analysis.R             descriptives, percentiles, Mann-Whitney tests, tables, figures
+│   └── candidate_analysis.R             descriptives, percentile ranks with item-bootstrap CIs, tables, figures
 └── outputs/
     ├── candidate_descriptives.csv/.xlsx          Supplementary Table S8
-    ├── model_percentiles.csv                     Supplementary Table S9
-    ├── mann_whitney_LLM_vs_candidates.csv/.xlsx  Table 5
+    ├── model_percentiles.csv/.xlsx               Table 5 and Supplementary Table S9
     ├── table_descriptive.csv                     Tables 2–3
     └── Figure1–Figure4 (.png)
 ```
@@ -66,12 +64,14 @@ Candidate_analysis/
   in any year). Two independent extractions of the PDF rankings, with PyMuPDF and with pdfplumber, produced
   identical scores for all candidates.
 - **Descriptive statistics.** Quantiles use linear interpolation (R default, type 7).
-- **Percentile rank of a model.** Percentage of candidates whose test score is lower than or equal to
-  the model's median score over its 50 runs in the same year.
-- **Mann-Whitney U tests (Table 5).** For each year and model, the 50 run scores of the model are
-  compared with the test scores of all candidates of that year (two-sided, normal approximation with
-  continuity correction, `wilcox.test(exact = FALSE)`); p-values are Holm-adjusted across the 18 models
-  within each year.
+- **Percentile rank of a model (Table 5).** Percentage of candidates whose test score is lower than or
+  equal to the model's mean score over its 50 runs in the same year. Because the 50 runs share the same
+  140 questions, the 95% confidence interval is obtained by resampling the questions of that year with
+  replacement (percentile bootstrap, 4,000 resamples, seed 2026): in each resample the model's mean score
+  is recomputed from its accuracy on each question over the 50 runs (`../Analysis/statistics_output/llm_item_accuracy.csv`;
+  expected item score = 1.25 × accuracy − 0.25) and located in the candidate distribution. The same
+  resamples give the 95% CI of the mean score (Supplementary Table S9). The comparison is descriptive;
+  no hypothesis tests are performed.
 
 ## How to reproduce
 
@@ -79,7 +79,7 @@ From this folder:
 
 ```
 python scripts/build_llm_runs_long.py       # rebuilds data/llm_runs_long.csv from ../Results
-Rscript scripts/candidate_analysis.R        # uses data/ only; writes outputs/
+Rscript scripts/candidate_analysis.R        # uses data/ and ../Analysis/statistics_output/llm_item_accuracy.csv; writes outputs/
 python scripts/extract_rankings.py          # only with the original rankings in original_rankings/
 ```
 
