@@ -11,7 +11,9 @@ Outputs (Contamination_Analysis/analysis/):
   ts_guessing_summary.csv    per model: exact-match and near-exact (ROUGE-L >= 0.8) reproduction of
                              the masked option, overall and for options not derivable from the visible
                              ones; accuracy on items reproduced vs not reproduced
-  sampled_decoding.csv       MedGemma 1.5-4B, greedy (main study) vs sampled decoding (if available)
+  sampled_decoding.csv       MedGemma 1.5-4B, greedy (main study) vs sampled decoding (if available):
+                             accuracy, and share of items answered identically in all runs, compared
+                             with random subsets of as many runs of the main study
 Bootstrap: items resampled with replacement (B = 4000, seed 2026); the responses of all runs to an
 item are kept together, so that the intervals reflect the sampling of questions.
 """
@@ -71,7 +73,7 @@ def rouge_l(a, b):
 
 
 def read_jsonl(pattern):
-    return pd.DataFrame([json.loads(l) for f in sorted(glob.glob(os.path.join(RES, pattern)))
+    return pd.DataFrame([json.loads(l) for f in sorted(glob.glob(os.path.join(RES, "**", pattern), recursive=True))
                          for l in open(f, encoding="utf-8") if l.strip()])
 
 
@@ -147,10 +149,20 @@ def main():
             g = g.assign(chosen=[r["options"].get(r["answer"]) if isinstance(r["options"], dict) else None
                                  for _, r in g.iterrows()])
             same = g.groupby(["year", "question_idx"]).chosen.nunique().eq(1).mean()
+            # reference: same measure in the main study (greedy), on random subsets of as many runs
+            c = pd.read_excel(os.path.join(ROOT, "Results", CONSISTENCY[model][0])).copy()
+            c["year"] = c.iloc[:, 0].astype(str).str[:4].astype(int)
+            cells = {(y, q): c.loc[c.year == y, f"Domanda_{q}"].astype(str).tolist() for y, q in keys}
+            n_runs, r = int(g.run.nunique()), np.random.default_rng(SEED)
+            ref = [np.mean([len(set(r.choice(v, n_runs, replace=False))) == 1 for v in cells.values()])
+                   for _ in range(1000)]
             rows_s.append({"model": CONSISTENCY[model][1], "runs": int(g.run.nunique()),
                            "acc_greedy_main_study": round(est[0] * 100, 1), "acc_sampled": round(est[1] * 100, 1),
                            "diff": round((est[1] - est[0]) * 100, 1), "diff_ci": ci(bs[:, 1] - bs[:, 0]),
-                           "items_same_answer_all_runs_pct": round(same * 100, 1)})
+                           "items_same_answer_all_runs_pct": round(same * 100, 1),
+                           "main_study_greedy_same_answer_pct": round(np.mean(ref) * 100, 1),
+                           "main_study_greedy_same_answer_range": f"[{np.percentile(ref, 2.5) * 100:.1f}, "
+                                                                  f"{np.percentile(ref, 97.5) * 100:.1f}]"})
         pd.DataFrame(rows_s).to_csv(os.path.join(OUT, "sampled_decoding.csv"), index=False)
 
     # ---------------- TS-Guessing ----------------
