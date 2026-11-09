@@ -44,12 +44,14 @@ def write(path, recs):
             fh.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
-for path in sorted(glob.glob(os.path.join(RES, "*.jsonl"))):
+for path in sorted(glob.glob(os.path.join(RES, "**", "*.jsonl"), recursive=True)):
+    if "_before_finalize" in path:
+        continue
     name = os.path.basename(path)
     if name.startswith("openrouter_calls"):
         continue
     if not CHECK:
-        shutil.copy2(path, os.path.join(backup, name))
+        shutil.copy2(path, os.path.join(backup, os.path.relpath(path, RES).replace(os.sep, "__")))
     recs = read(path)
     if name.startswith("perturbation_"):
         uniq = {(r["condition"], r["run"], r["year"], r["question_idx"]): r for r in recs
