@@ -204,6 +204,14 @@ python Analysis/abstention_sensitivity.py
 
 Outputs in `Analysis/statistics_output/`: `abstention_sensitivity.csv` (one row per model, year and condition: questions abstained, mean score, percentile rank with 95% item-bootstrap CI, change from forced response) and `abstention_sensitivity_summary.csv` (one row per model and condition).
 
+**Image-dependent questions.** `Analysis/image_items_sensitivity.py` reports, for every model, the accuracy on all 700 questions, on the 665 text-only questions and on the 35 image-dependent questions, and repeats the comparison with the human candidates with the image-dependent questions scored as unanswered (0 points) for the models (Supplementary Table S14). Run it from the repository root (Python: pandas, NumPy, openpyxl):
+
+```
+python Analysis/image_items_sensitivity.py
+```
+
+Outputs in `Analysis/statistics_output/`: `image_items_accuracy.csv` and `image_items_sensitivity.csv`.
+
 ## Human reference data
 
 `Candidate_analysis/` contains the anonymised test scores of all candidates of the 2020–2024 examinations, the code used to extract them from the official national rankings, and the analysis that compares them with the models (Tables 2, 3 and 5, Figures 1–4, Supplementary Tables S8–S9). The original rankings contain personal data and are not distributed. See `Candidate_analysis/README.md`.
